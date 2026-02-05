@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { db } from "../lib/firebase";
 import { collection, addDoc, query, where, getDocs, serverTimestamp } from "firebase/firestore";
-import { Plus, CheckCircle, Clock, XCircle, FileText, Calendar, Briefcase, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, CheckCircle, XCircle, FileText, Calendar, Briefcase, Sparkles } from "lucide-react";
 
 export default function StudentDashboard() {
     const { currentUser } = useAuth();
@@ -80,53 +80,61 @@ export default function StudentDashboard() {
         }
     };
 
-    if (loading) return <div className="p-8 text-center text-gray-500">Loading data...</div>;
+    if (loading) return <div className="flex justify-center py-20 text-gray-400">Loading your dashboard...</div>;
 
     return (
-        <div className="max-w-7xl mx-auto p-6 md:p-8 space-y-8">
+        <div className="space-y-6">
 
-            {/* Page Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            {/* Dashboard Title & Actions */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Student Dashboard</h1>
-                    <p className="text-gray-400">Department of {currentUser?.department}</p>
+                    <h1 className="text-2xl font-bold text-gray-800">Student Dashboard</h1>
+                    <p className="text-gray-500 text-sm mt-1">
+                        Department: <span className="font-semibold text-academic-blue">{currentUser?.department}</span>
+                    </p>
                 </div>
                 <button
                     onClick={() => setShowForm(!showForm)}
-                    className="flex items-center gap-2 bg-gradient-to-r from-kec-blue to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white px-5 py-2.5 rounded-lg shadow-lg border border-white/10 transition-all text-sm font-medium"
+                    className="mt-4 md:mt-0 flex items-center gap-2 bg-academic-teal hover:bg-teal-700 text-white px-6 py-2.5 rounded-lg shadow-md transition-all font-medium"
                 >
-                    {showForm ? "Cancel Submission" : <><Plus size={18} /> Submit New Feedback</>}
+                    {showForm ? "Cancel Submission" : <><Plus size={18} /> Add Interview Experience</>}
                 </button>
             </div>
 
-            {/* Submission Form */}
+            {/* Submission Form Card */}
             {showForm && (
-                <div className="glass-panel rounded-xl p-6 md:p-8 animate-fade-in-down">
-                    <div className="flex items-center gap-2 mb-6 text-kec-light-blue border-b border-white/10 pb-3">
-                        <FileText size={20} />
-                        <h2 className="text-lg font-bold">Feedback Submission Form</h2>
+                <div className="bg-white rounded-xl shadow-md border border-gray-100 p-8 animate-fade-in-down">
+                    <div className="flex items-center gap-3 mb-8 pb-4 border-b border-gray-100">
+                        <div className="p-2 bg-blue-50 rounded-lg text-academic-blue">
+                            <FileText size={24} />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-800">Submit New Feedback</h2>
+                            <p className="text-xs text-gray-500">Share your experience to help juniors</p>
+                        </div>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* General Info */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             <div>
-                                <label className="block text-sm font-semibold text-gray-300 mb-1">Company Name</label>
-                                <input type="text" className="w-full bg-white/5 border border-white/10 rounded-lg p-2 focus:bg-white/10 focus:border-kec-light-blue outline-none text-white"
-                                    value={formData.companyName} onChange={e => setFormData({ ...formData, companyName: e.target.value })} required />
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Company Name</label>
+                                <input type="text" className="w-full border border-gray-200 bg-gray-50 rounded-lg p-3 focus:ring-2 focus:ring-academic-teal outline-none transition"
+                                    value={formData.companyName} onChange={e => setFormData({ ...formData, companyName: e.target.value })} required placeholder="e.g. Zoho" />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-gray-300 mb-1">Drive Date</label>
-                                <input type="date" className="w-full bg-white/5 border border-white/10 rounded-lg p-2 focus:bg-white/10 focus:border-kec-light-blue outline-none text-white [color-scheme:dark]"
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Drive Date</label>
+                                <input type="date" className="w-full border border-gray-200 bg-gray-50 rounded-lg p-3 focus:ring-2 focus:ring-academic-teal outline-none transition"
                                     value={formData.driveDate} onChange={e => setFormData({ ...formData, driveDate: e.target.value })} required />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-gray-300 mb-1">Job Role</label>
-                                <input type="text" className="w-full bg-white/5 border border-white/10 rounded-lg p-2 focus:bg-white/10 focus:border-kec-light-blue outline-none text-white"
-                                    value={formData.jobRole} onChange={e => setFormData({ ...formData, jobRole: e.target.value })} required />
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Job Role</label>
+                                <input type="text" className="w-full border border-gray-200 bg-gray-50 rounded-lg p-3 focus:ring-2 focus:ring-academic-teal outline-none transition"
+                                    value={formData.jobRole} onChange={e => setFormData({ ...formData, jobRole: e.target.value })} required placeholder="e.g. Developer" />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-gray-300 mb-1">Difficulty Level</label>
-                                <select className="w-full bg-white/5 border border-white/10 rounded-lg p-2 focus:bg-white/10 focus:border-kec-light-blue outline-none text-white [&>option]:bg-gray-900"
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Difficulty</label>
+                                <select className="w-full border border-gray-200 bg-gray-50 rounded-lg p-3 focus:ring-2 focus:ring-academic-teal outline-none transition"
                                     value={formData.difficulty} onChange={e => setFormData({ ...formData, difficulty: e.target.value })}>
                                     <option>Easy</option>
                                     <option>Medium</option>
@@ -135,91 +143,109 @@ export default function StudentDashboard() {
                             </div>
                         </div>
 
-                        {/* Rounds */}
-                        <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                            <h3 className="text-sm font-bold text-gray-300 mb-3 uppercase tracking-wide">Recruitment Rounds</h3>
+                        {/* Rounds Section */}
+                        <div className="bg-blue-50/50 p-6 rounded-xl border border-blue-100">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-sm font-bold text-academic-blue uppercase tracking-wide">Interview Rounds</h3>
+                                <button type="button" onClick={handleAddRound} className="text-xs font-bold text-academic-teal hover:underline">+ Add Round</button>
+                            </div>
                             <div className="space-y-4">
                                 {formData.rounds.map((round, index) => (
-                                    <div key={index} className="flex flex-col md:flex-row gap-3">
-                                        <input type="text" placeholder="Round Name (e.g. Aptitude)" className="bg-white/5 border border-white/10 rounded-lg p-2 md:w-1/3 text-sm text-white focus:border-kec-light-blue outline-none"
-                                            value={round.name} onChange={e => handleRoundChange(index, 'name', e.target.value)} required />
-                                        <textarea placeholder="Questions asked or topics covered..." className="bg-white/5 border border-white/10 rounded-lg p-2 md:w-2/3 text-sm h-10 min-h-[40px] focus:h-20 transition-all text-white focus:border-kec-light-blue outline-none"
-                                            value={round.questions} onChange={e => handleRoundChange(index, 'questions', e.target.value)} required />
+                                    <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="md:col-span-1">
+                                            <input type="text" placeholder="Round Name" className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-academic-blue outline-none"
+                                                value={round.name} onChange={e => handleRoundChange(index, 'name', e.target.value)} required />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <textarea placeholder="Questions asked..." className="w-full border border-gray-200 rounded-lg p-3 text-sm h-[46px] min-h-[46px] focus:h-20 transition-all focus:border-academic-blue outline-none resize-none"
+                                                value={round.questions} onChange={e => handleRoundChange(index, 'questions', e.target.value)} required />
+                                        </div>
                                     </div>
                                 ))}
                             </div>
-                            <button type="button" onClick={handleAddRound} className="mt-4 text-sm font-semibold text-kec-light-blue hover:text-white transition-colors">+ Add Another Round</button>
                         </div>
 
-                        <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-semibold text-gray-300 mb-1">Overall Experience</label>
-                                <textarea className="w-full bg-white/5 border border-white/10 rounded-lg p-3 h-24 focus:bg-white/10 focus:border-kec-light-blue outline-none text-white"
-                                    placeholder="Describe the overall process and atmosphere..."
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Overall Experience</label>
+                                <textarea className="w-full border border-gray-200 bg-gray-50 rounded-lg p-4 h-32 focus:ring-2 focus:ring-academic-teal outline-none transition"
+                                    placeholder="Describe the overall process..."
                                     value={formData.overallExperience} onChange={e => setFormData({ ...formData, overallExperience: e.target.value })} required />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-gray-300 mb-1">Preparation Tips for Juniors</label>
-                                <textarea className="w-full bg-white/5 border border-white/10 rounded-lg p-3 h-24 focus:bg-white/10 focus:border-kec-light-blue outline-none text-white"
-                                    placeholder="What should they focus on? any specific resources?"
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Preparation Tips</label>
+                                <textarea className="w-full border border-gray-200 bg-gray-50 rounded-lg p-4 h-32 focus:ring-2 focus:ring-academic-teal outline-none transition"
+                                    placeholder="Advice for juniors..."
                                     value={formData.preparationTips} onChange={e => setFormData({ ...formData, preparationTips: e.target.value })} required />
                             </div>
                         </div>
 
-                        <div className="flex justify-end gap-4 pt-4 border-t border-white/10">
-                            <button type="button" onClick={() => setShowForm(false)} className="px-6 py-2 text-gray-400 font-medium hover:text-white transition-colors">Cancel</button>
-                            <button type="submit" className="px-8 py-2 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg shadow-lg border border-white/10">Submit Feedback</button>
+                        <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
+                            <button type="button" onClick={() => setShowForm(false)} className="px-6 py-2.5 text-gray-500 font-semibold hover:bg-gray-50 rounded-lg transition">Cancel</button>
+                            <button type="submit" className="px-8 py-2.5 bg-academic-blue hover:bg-blue-900 text-white font-bold rounded-lg shadow-lg transform active:scale-95 transition">Submit Application</button>
                         </div>
                     </form>
                 </div>
             )}
 
-            {/* Content Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Stats / Filters Row */}
+            <div className="flex gap-4 overflow-x-auto pb-2">
+                {/* Filter pills can go here */}
+            </div>
+
+            {/* Feedbacks Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {feedbacks.map(item => (
-                    <div key={item.id} className="glass-panel overflow-hidden hover:bg-white/5 transition-colors duration-300 flex flex-col h-full rounded-xl">
-                        <div className="p-5 border-b border-white/10 bg-white/5 flex justify-between items-start">
-                            <div>
-                                <h3 className="text-xl font-bold text-white">{item.companyName}</h3>
-                                <div className="flex items-center gap-2 mt-1 text-sm text-gray-400">
-                                    <Briefcase size={14} /> {item.jobRole}
+                    <div key={item.id} className="bg-white rounded-xl shadow-sm hover:shadow-lg border border-gray-100 transition-all duration-300 flex flex-col h-full group">
+
+                        {/* Card Header */}
+                        <div className="p-5 border-b border-gray-50 flex justify-between items-start">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-gray-600 font-bold text-lg group-hover:bg-blue-50 group-hover:text-academic-blue transition-colors">
+                                    {item.companyName.charAt(0)}
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-gray-800 leading-tight">{item.companyName}</h3>
+                                    <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                        <Calendar size={10} /> {item.driveDate}
+                                    </p>
                                 </div>
                             </div>
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${item.status === 'approved' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
-                                    item.status === 'rejected' ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
-                                        'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${item.status === 'approved' ? 'bg-green-50 text-green-600' :
+                                    item.status === 'rejected' ? 'bg-red-50 text-red-600' :
+                                        'bg-yellow-50 text-yellow-600'
                                 }`}>
-                                {item.status === 'approved' ? 'Verified' : item.status}
+                                {item.status}
                             </span>
                         </div>
 
-                        <div className="p-5 flex-1 space-y-4">
-                            <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                                <Calendar size={14} />
-                                {item.driveDate}
-                                <span className="mx-1">•</span>
-                                Difficulty:
-                                <span className={`${item.difficulty === 'Hard' ? 'text-red-400' :
-                                        item.difficulty === 'Medium' ? 'text-yellow-400' :
-                                            'text-green-400'
-                                    }`}>{item.difficulty}</span>
+                        {/* Card Body */}
+                        <div className="p-5 flex-1 select-none">
+                            <div className="mb-4">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 text-academic-blue text-xs font-semibold">
+                                    <Briefcase size={12} /> {item.jobRole}
+                                </span>
+                                <span className="ml-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-gray-50 text-gray-600 text-xs font-semibold">
+                                    {item.difficulty}
+                                </span>
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 {item.rounds && item.rounds.slice(0, 2).map((r, i) => (
-                                    <div key={i} className="text-sm bg-black/20 p-2.5 rounded border border-white/5">
-                                        <span className="font-bold text-kec-light-blue block mb-1">{r.name}</span>
-                                        <p className="text-gray-300 line-clamp-2">{r.questions}</p>
+                                    <div key={i} className="text-sm text-gray-600 pl-3 border-l-2 border-gray-200">
+                                        <span className="font-semibold text-gray-800">{r.name}</span>
+                                        <p className="text-xs text-gray-500 line-clamp-1 truncate">{r.questions}</p>
                                     </div>
                                 ))}
-                                {item.rounds && item.rounds.length > 2 && (
-                                    <p className="text-xs text-blue-400 font-medium text-center">+ {item.rounds.length - 2} more rounds</p>
-                                )}
                             </div>
                         </div>
 
-                        <div className="p-4 border-t border-white/10 bg-white/5 text-center">
-                            <button className="text-kec-light-blue font-semibold text-sm hover:text-white transition-colors">View Full Details</button>
+                        {/* Card Footer */}
+                        <div className="p-4 bg-gray-50 rounded-b-xl border-t border-gray-100 flex justify-between items-center group-hover:bg-blue-50/30 transition-colors">
+                            <span className="text-xs text-gray-400 font-medium">By {item.studentName}</span>
+                            <button className="text-xs font-bold text-academic-teal hover:text-teal-800 flex items-center gap-1">
+                                View Details <Sparkles size={12} />
+                            </button>
                         </div>
                     </div>
                 ))}

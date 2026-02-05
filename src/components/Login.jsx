@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { auth, db } from "../lib/firebase";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { User, Lock, Mail, ChevronRight } from "lucide-react";
+import kecLogo from "../assets/KEC.png"; // Importing local asset
 
 export default function Login() {
     const [isLogin, setIsLogin] = useState(true);
@@ -20,8 +21,19 @@ export default function Login() {
         setError("");
         try {
             if (isLogin) {
-                await signInWithEmailAndPassword(auth, email, password);
-                navigate("/dashboard");
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // Direct Redirect: Fetch role immediately to avoid race conditions
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    const targetRole = userData.role || 'student';
+                    navigate(`/${targetRole}`);
+                } else {
+                    // Fallback if no data exists
+                    navigate("/student");
+                }
             } else {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
@@ -35,134 +47,167 @@ export default function Login() {
                     createdAt: new Date()
                 });
 
-                navigate("/dashboard");
+                // Navigate directly to the selected role dashboard
+                navigate(`/${role}`);
             }
         } catch (err) {
+            console.error(err);
             setError(err.message);
         }
     };
 
     return (
-        <div className="flex items-center justify-center min-h-[calc(100vh-96px)] p-4 relative overflow-hidden">
-            {/* Background Elements */}
-            <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-purple-600/30 rounded-full blur-[100px]"></div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-blue-600/30 rounded-full blur-[100px]"></div>
+        <div className="flex items-center justify-center min-h-screen bg-[#f3f4f6] p-4 md:p-6 font-sans">
+            <div className="flex w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden min-h-[650px]">
 
-            <div className="glass-panel w-full max-w-md p-8 rounded-2xl shadow-2xl relative z-10">
-                <div className="mb-8 text-center">
-                    <div className="mx-auto w-16 h-16 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md mb-4 border border-white/20">
-                        <img
-                            src="https://upload.wikimedia.org/wikipedia/en/e/e0/Kongu_Engineering_College_Logo.png"
-                            alt="KEC"
-                            className="w-10 h-10 object-contain"
-                        />
+                {/* Brand Side (Left) - Professional Academic Style */}
+                <div className="hidden md:flex w-5/12 bg-gradient-to-br from-[#003366] to-[#002244] relative flex-col justify-between p-10 text-white">
+                    <div className="relative z-10">
+                        {/* Logo Section */}
+                        <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-lg p-3 mx-auto md:mx-0">
+                            <img src={kecLogo} alt="KEC Logo" className="w-full h-full object-contain" />
+                        </div>
+
+                        {/* College Name & Branding */}
+                        <div className="mb-2">
+                            <h1 className="text-3xl font-extrabold tracking-wide leading-tight">
+                                <span className="text-[#8cc63f]">KONGU</span> <br />
+                                <span>ENGINEERING COLLEGE</span>
+                            </h1>
+                            <div className="h-1 w-20 bg-[#8cc63f] mt-4 rounded-full"></div>
+                        </div>
+
+                        <h2 className="text-lg font-light tracking-widest uppercase opacity-90 mt-2">
+                            Transform Yourself
+                        </h2>
                     </div>
-                    <h2 className="text-3xl font-bold text-white mb-2">
-                        {isLogin ? "Welcome Back" : "Join KEC Portal"}
-                    </h2>
-                    <p className="text-gray-300 text-sm">
-                        {isLogin ? "Sign in to access placement feedback." : "Create your account today."}
-                    </p>
+
+                    <div className="relative z-10 mt-12">
+                        <div className="bg-white/10 backdrop-blur-sm p-6 rounded-xl border border-white/20 shadow-inner">
+                            <h3 className="font-bold text-lg mb-2 text-[#8cc63f]">Placement Feedback Portal</h3>
+                            <p className="text-gray-200 text-sm leading-relaxed">
+                                "Your gateway to placement success. Share insights, gain knowledge, and prepare for your future career."
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Background Pattern Effects */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#8cc63f]/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4"></div>
                 </div>
 
-                {error && <div className="bg-red-500/20 border border-red-500/50 p-3 mb-6 text-red-200 text-sm rounded-lg">{error}</div>}
+                {/* Form Side (Right) */}
+                <div className="w-full md:w-7/12 p-8 md:p-14 flex flex-col justify-center bg-white relative">
+                    <div className="max-w-md mx-auto w-full relative z-10">
+                        {/* Role Selection Tabs */}
+                        <div className="flex p-1 bg-gray-100 rounded-lg mb-8">
+                            {['student', 'coordinator', 'admin'].map((r) => (
+                                <button
+                                    key={r}
+                                    onClick={() => setRole(r)}
+                                    className={`flex-1 py-2 text-sm font-bold capitalize rounded-md transition-all ${role === r
+                                            ? "bg-white text-[#003366] shadow-sm"
+                                            : "text-gray-500 hover:text-gray-700"
+                                        }`}
+                                >
+                                    {r}
+                                </button>
+                            ))}
+                        </div>
 
-                <form onSubmit={handleAuth} className="space-y-5">
-                    {!isLogin && (
-                        <>
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Full Name</label>
+                        <div className="mb-8">
+                            <h2 className="text-3xl font-bold text-gray-900 mb-2 capitalize">
+                                {isLogin ? `${role} Login` : `Create ${role} Account`}
+                            </h2>
+                            <p className="text-gray-500 text-sm">
+                                {isLogin ? "Welcome back! Please enter your details." : "Join the community to access exclusive resources."}
+                            </p>
+                        </div>
+
+                        {error && (
+                            <div className="bg-red-50 text-red-700 p-4 rounded-lg text-sm mb-6 border-l-4 border-red-500 flex items-center shadow-sm">
+                                {error}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleAuth} className="space-y-5">
+                            {!isLogin && (
+                                <>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Full Name</label>
+                                        <div className="relative">
+                                            <User className="absolute left-3 top-3 text-gray-400" size={18} />
+                                            <input
+                                                type="text"
+                                                className="w-full border-b-2 border-gray-200 bg-gray-50/50 rounded-t-lg px-4 py-2.5 pl-10 focus:border-[#003366] focus:bg-white outline-none transition-colors"
+                                                placeholder="John Doe"
+                                                value={name} onChange={(e) => setName(e.target.value)} required
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {role !== 'admin' && (
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Department</label>
+                                            <input
+                                                type="text"
+                                                className="w-full border-b-2 border-gray-200 bg-gray-50/50 rounded-t-lg px-4 py-2.5 focus:border-[#003366] focus:bg-white outline-none transition-colors"
+                                                placeholder="CSE"
+                                                value={department} onChange={(e) => setDepartment(e.target.value)} required
+                                            />
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Email</label>
                                 <div className="relative">
-                                    <User className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                                    <Mail className="absolute left-3 top-3 text-gray-400" size={18} />
                                     <input
-                                        type="text"
-                                        placeholder="e.g. John Doe"
-                                        className="w-full bg-white/5 border border-white/10 rounded-lg py-2 pl-10 pr-4 text-white placeholder-gray-500 focus:bg-white/10 focus:border-kec-light-blue outline-none transition"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        required
+                                        type="email"
+                                        className="w-full border-b-2 border-gray-200 bg-gray-50/50 rounded-t-lg px-4 py-2.5 pl-10 focus:border-[#003366] focus:bg-white outline-none transition-colors"
+                                        placeholder="student@kongu.edu"
+                                        value={email} onChange={(e) => setEmail(e.target.value)} required
                                     />
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Role</label>
-                                    <select
-                                        value={role}
-                                        onChange={(e) => setRole(e.target.value)}
-                                        className="w-full bg-white/5 border border-white/10 rounded-lg py-2 px-3 text-white focus:bg-white/10 focus:border-kec-light-blue outline-none [&>option]:bg-gray-900"
-                                    >
-                                        <option value="student">Student</option>
-                                        <option value="coordinator">Coordinator</option>
-                                        <option value="admin">Admin</option>
-                                    </select>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Password</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-3 text-gray-400" size={18} />
+                                    <input
+                                        type="password"
+                                        className="w-full border-b-2 border-gray-200 bg-gray-50/50 rounded-t-lg px-4 py-2.5 pl-10 focus:border-[#003366] focus:bg-white outline-none transition-colors"
+                                        placeholder="••••••••"
+                                        value={password} onChange={(e) => setPassword(e.target.value)} required
+                                    />
                                 </div>
-                                {role !== 'admin' && (
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Dept</label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. CSE"
-                                            className="w-full bg-white/5 border border-white/10 rounded-lg py-2 px-3 text-white placeholder-gray-500 focus:bg-white/10 focus:border-kec-light-blue outline-none transition"
-                                            value={department}
-                                            onChange={(e) => setDepartment(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                )}
                             </div>
-                        </>
-                    )}
 
-                    <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Email</label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-2.5 text-gray-400" size={18} />
-                            <input
-                                type="email"
-                                placeholder="student@kongu.edu"
-                                className="w-full bg-white/5 border border-white/10 rounded-lg py-2 pl-10 pr-4 text-white placeholder-gray-500 focus:bg-white/10 focus:border-kec-light-blue outline-none transition"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                            />
+                            <div className="pt-4">
+                                <button
+                                    type="submit"
+                                    className="w-full bg-[#003366] hover:bg-[#002244] text-white font-bold py-3.5 rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 transform active:scale-[0.99]"
+                                >
+                                    {isLogin ? "Sign In" : "Create Account"} <ChevronRight size={18} />
+                                </button>
+                            </div>
+                        </form>
+
+                        <div className="mt-8 text-center pt-6">
+                            <p className="text-sm text-gray-600">
+                                {isLogin ? "Don't have an account?" : "Already registered?"}{" "}
+                                <button
+                                    onClick={() => setIsLogin(!isLogin)}
+                                    className="text-[#003366] font-bold hover:text-[#8cc63f] transition-colors"
+                                >
+                                    {isLogin ? "Sign up now" : "Log in"}
+                                </button>
+                            </p>
                         </div>
                     </div>
-
-                    <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Password</label>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-2.5 text-gray-400" size={18} />
-                            <input
-                                type="password"
-                                placeholder="••••••••"
-                                className="w-full bg-white/5 border border-white/10 rounded-lg py-2 pl-10 pr-4 text-white placeholder-gray-500 focus:bg-white/10 focus:border-kec-light-blue outline-none transition"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        className="w-full bg-gradient-to-r from-kec-blue to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white font-bold py-2.5 rounded-lg transition-all shadow-lg flex items-center justify-center gap-2 transform hover:scale-[1.02] border border-white/10"
-                    >
-                        {isLogin ? "Sign In" : "Create Account"} <ChevronRight size={18} />
-                    </button>
-                </form>
-
-                <div className="mt-6 text-center">
-                    <p className="text-sm text-gray-400">
-                        {isLogin ? "New to the portal?" : "Already have an account?"}{" "}
-                        <button
-                            onClick={() => setIsLogin(!isLogin)}
-                            className="text-kec-green font-bold hover:underline hover:text-green-400 transition"
-                        >
-                            {isLogin ? "Register Now" : "Login Here"}
-                        </button>
-                    </p>
                 </div>
             </div>
         </div>

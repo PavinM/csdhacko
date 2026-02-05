@@ -1,7 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { useState } from "react";
 import Login from "./components/Login";
-import Header from "./components/Header";
+import Sidebar from "./components/Sidebar";
+import TopBar from "./components/TopBar";
 import StudentDashboard from "./components/StudentDashboard";
 import CoordinatorDashboard from "./components/CoordinatorDashboard";
 import AdminDashboard from "./components/AdminDashboard";
@@ -9,17 +11,38 @@ import AdminDashboard from "./components/AdminDashboard";
 function PrivateRoute({ children, allowedRoles }) {
   const { currentUser, userRole, loading } = useAuth();
 
-  if (loading) return <div className="text-white text-center mt-20">Loading...</div>;
+  if (loading) return <div className="flex h-screen items-center justify-center text-academic-blue font-semibold">Loading Portal...</div>;
 
   if (!currentUser) {
     return <Navigate to="/login" />;
   }
 
   if (allowedRoles && !allowedRoles.includes(userRole)) {
-    return <div className="text-white text-center mt-20">Access Denied</div>;
+    return <div className="text-center mt-20 text-red-600 font-bold">Access Denied</div>;
   }
 
   return children;
+}
+
+function Layout({ children }) {
+  const { currentUser } = useAuth();
+  const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile state
+
+  // Dont show layout on login
+  if (location.pathname === '/login') return children;
+
+  return (
+    <div className="min-h-screen bg-academic-gray flex">
+      {currentUser && <Sidebar mobileOpen={sidebarOpen} />}
+      <div className="flex-1 flex flex-col min-w-0 transition-all md:pl-72">
+        {currentUser && <TopBar toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />}
+        <main className="flex-1 p-6 overflow-y-auto">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
 }
 
 // Redirect based on role
@@ -36,8 +59,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen pt-24 bg-gray-900"> {/* Dark Background, padding for h-24 header */}
-          <Header />
+        <Layout>
           <Routes>
             <Route path="/login" element={<Login />} />
 
@@ -63,7 +85,7 @@ function App() {
 
             <Route path="*" element={<Navigate to="/login" />} />
           </Routes>
-        </div>
+        </Layout>
       </Router>
     </AuthProvider>
   );

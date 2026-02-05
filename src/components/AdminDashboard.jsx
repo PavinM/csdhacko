@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { db, auth } from "../lib/firebase";
 import { collection, query, getDocs } from "firebase/firestore";
-import { Users, Building, BarChart2, Search, Filter } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Users, Building, BarChart2, MoreVertical, Search } from "lucide-react";
 
 export default function AdminDashboard() {
     const { currentUser } = useAuth();
@@ -30,76 +29,92 @@ export default function AdminDashboard() {
 
     if (loading) return <div className="p-8 text-center text-gray-500">Loading system data...</div>;
 
+    const stats = [
+        { label: 'Total Users', value: users.length, icon: Users, color: 'bg-blue-500' },
+        { label: 'Departments', value: '3', icon: Building, color: 'bg-teal-500' },
+        { label: 'Active Drives', value: '12', icon: BarChart2, color: 'bg-purple-500' },
+    ];
+
     return (
-        <div className="max-w-7xl mx-auto p-6 md:p-8">
-            <div className="mb-8 border-b border-white/10 pb-6 flex justify-between items-end">
-                <div>
-                    <h1 className="text-2xl font-bold text-white">System Administration</h1>
-                    <p className="text-gray-400">Overview and User Management</p>
-                </div>
+        <div className="space-y-8">
+            {/* Header */}
+            <div>
+                <h1 className="text-2xl font-bold text-gray-800">System Administration</h1>
+                <p className="text-gray-500 text-sm">Overview and User Management</p>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="glass-panel p-6 rounded-xl flex items-center gap-4 hover:bg-white/5 transition">
-                    <div className="p-3 bg-blue-500/20 rounded-full text-blue-300"><Users size={24} /></div>
-                    <div>
-                        <h3 className="text-2xl font-bold text-white">{users.length}</h3>
-                        <p className="text-xs font-semibold text-gray-400 uppercase">Total Users</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {stats.map((stat, idx) => (
+                    <div key={idx} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{stat.label}</p>
+                            <h3 className="text-3xl font-bold text-gray-800 my-1">{stat.value}</h3>
+                        </div>
+                        <div className={`w-12 h-12 rounded-xl ${stat.color} bg-opacity-10 flex items-center justify-center`}>
+                            <stat.icon size={24} className={stat.color.replace('bg-', 'text-')} />
+                        </div>
                     </div>
-                </div>
-                <div className="glass-panel p-6 rounded-xl flex items-center gap-4 hover:bg-white/5 transition">
-                    <div className="p-3 bg-purple-500/20 rounded-full text-purple-300"><Building size={24} /></div>
-                    <div>
-                        <h3 className="text-2xl font-bold text-white">3</h3>
-                        <p className="text-xs font-semibold text-gray-400 uppercase">Departments</p>
-                    </div>
-                </div>
-                <div className="glass-panel p-6 rounded-xl flex items-center gap-4 hover:bg-white/5 transition">
-                    <div className="p-3 bg-green-500/20 rounded-full text-green-300"><BarChart2 size={24} /></div>
-                    <div>
-                        <h3 className="text-2xl font-bold text-white">12</h3>
-                        <p className="text-xs font-semibold text-gray-400 uppercase">Drives this Year</p>
-                    </div>
-                </div>
+                ))}
             </div>
 
-            {/* User Table */}
-            <div className="glass-panel border border-white/10 rounded-xl overflow-hidden shadow-lg">
-                <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
-                    <h2 className="font-bold text-gray-200 flex items-center gap-2"><Users size={18} /> User Directory</h2>
-                    <div className="flex gap-2">
-                        <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-300 bg-white/5 border border-white/10 rounded hover:bg-white/10 hover:text-white transition">
-                            <Filter size={14} /> Filter
-                        </button>
+            {/* User Table Card */}
+            <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                    <div>
+                        <h2 className="font-bold text-lg text-gray-800">Registered Users</h2>
+                        <p className="text-xs text-gray-500">Manage portal access</p>
+                    </div>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg flex items-center px-3 py-2 w-64">
+                        <Search size={16} className="text-gray-400 mr-2" />
+                        <input type="text" placeholder="Search users..." className="bg-transparent border-none outline-none text-sm w-full" />
                     </div>
                 </div>
+
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                        <thead className="bg-black/20 text-gray-400 uppercase text-xs font-semibold">
+                        <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-bold tracking-wider">
                             <tr>
-                                <th className="p-4 tracking-wide">Name</th>
-                                <th className="p-4 tracking-wide">Email</th>
-                                <th className="p-4 tracking-wide">Role</th>
-                                <th className="p-4 tracking-wide">Department</th>
-                                <th className="p-4 tracking-wide">Status</th>
+                                <th className="p-5">User Profile</th>
+                                <th className="p-5">Role</th>
+                                <th className="p-5">Department</th>
+                                <th className="p-5">Status</th>
+                                <th className="p-5 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5">
+                        <tbody className="divide-y divide-gray-50">
                             {users.map(user => (
-                                <tr key={user.id} className="hover:bg-white/5 transition">
-                                    <td className="p-4 text-sm font-medium text-white">{user.name}</td>
-                                    <td className="p-4 text-sm text-gray-400">{user.email}</td>
-                                    <td className="p-4">
-                                        <span className={`px-2 py-1 rounded text-xs font-semibold uppercase ${user.role === 'admin' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
-                                                user.role === 'coordinator' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
-                                                    'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                                <tr key={user.id} className="hover:bg-blue-50/30 transition-colors">
+                                    <td className="p-5">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-academic-blue/10 flex items-center justify-center text-xs font-bold text-academic-blue">
+                                                {user.name.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-semibold text-gray-900">{user.name}</p>
+                                                <p className="text-xs text-gray-500">{user.email}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="p-5">
+                                        <span className={`px-2.5 py-1 rounded text-xs font-bold uppercase ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                                                user.role === 'coordinator' ? 'bg-teal-100 text-teal-700' :
+                                                    'bg-blue-100 text-blue-700'
                                             }`}>
                                             {user.role}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-sm text-gray-400 font-mono">{user.department || '-'}</td>
-                                    <td className="p-4"><span className="w-2 h-2 rounded-full bg-green-500 inline-block mr-2 shadow-lg shadow-green-500/50"></span>Active</td>
+                                    <td className="p-5 text-sm text-gray-600 font-medium">{user.department || 'N/A'}</td>
+                                    <td className="p-5">
+                                        <span className="flex items-center gap-1.5 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded w-fit">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span> Active
+                                        </span>
+                                    </td>
+                                    <td className="p-5 text-right">
+                                        <button className="text-gray-400 hover:text-gray-600 transition">
+                                            <MoreVertical size={18} />
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>

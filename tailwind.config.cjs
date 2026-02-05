@@ -5,13 +5,13 @@ module.exports = {
         "./src/**/*.{js,ts,jsx,tsx}",
     ],
     theme: {
-        extend: {
-            colors: {
-                'kec-green': '#8cc63f',
-                'kec-blue': '#003366', // Darker professional blue for text
-                'kec-light-blue': '#00a9e0', // Bright blue for accents
-            },
+        colors: {
+            'academic-blue': '#1e3a8a', // Primary Blue
+            'academic-teal': '#0d9488', // Accent Teal
+            'academic-gray': '#f3f4f6', // Background Gray
+            'surface-white': '#ffffff', // Card White
         },
     },
+},
     plugins: [],
 }
