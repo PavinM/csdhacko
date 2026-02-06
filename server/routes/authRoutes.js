@@ -196,25 +196,26 @@ router.post('/google', asyncHandler(async (req, res) => {
             rollNo: rollNo || '',
         });
 
-        res.status(201).json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            department: user.department,
-            rollNo: user.rollNo,
-            // Academic Details
-            tenthMark: user.tenthMark,
-            twelfthMark: user.twelfthMark,
-            cgpa: user.cgpa,
-            domain: user.domain,
-            token: generateToken(user._id),
-        });
-    } else {
-        res.status(400);
-        throw new Error('Invalid user data for Google Sign-In');
+        if (user) {
+            res.status(201).json({
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                department: user.department,
+                rollNo: user.rollNo,
+                // Academic Details
+                tenthMark: user.tenthMark,
+                twelfthMark: user.twelfthMark,
+                cgpa: user.cgpa,
+                domain: user.domain,
+                token: generateToken(user._id),
+            });
+        } else {
+            res.status(400);
+            throw new Error('Invalid user data for Google Sign-In');
+        }
     }
-}
 }));
 
 
