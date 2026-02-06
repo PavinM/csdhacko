@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import {
     LayoutDashboard,
@@ -11,8 +11,14 @@ import {
 import kecLogo from "../assets/KEC.png";
 
 export default function Sidebar() {
-    const { userRole, currentUser } = useAuth();
+    const { userRole, currentUser, logout } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate("/login");
+    };
 
     if (!currentUser) return null;
 
@@ -49,10 +55,15 @@ export default function Sidebar() {
             path: '/admin',
             icon: Users
         },
+        {
+            role: 'admin',
+            label: 'Feedbacks',
+            path: '/coordinator/feedback',
+            icon: FileText
+        },
     ];
 
     const relevantNav = navItems.filter(item => {
-        if (userRole === 'admin') return item.role === 'admin' || item.role === 'coordinator';
         return item.role === userRole;
     });
 
@@ -103,8 +114,17 @@ export default function Sidebar() {
             </nav>
 
             {/* Footer / Copyright */}
-            <div className="p-6 text-center text-[10px] text-blue-400/60 border-t border-white/5">
-                &copy; 2026 Kongu Engineering College<br />All Rights Reserved.
+            <div className="p-4 border-t border-white/5 space-y-4">
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-red-300 hover:bg-white/10 hover:text-red-200 rounded-xl transition-all duration-300 group"
+                >
+                    <LogOut size={20} className="group-hover:text-red-100" />
+                    <span className="font-medium">Logout</span>
+                </button>
+                <div className="text-center text-[10px] text-blue-400/60">
+                    &copy; 2026 Kongu Engineering College<br />All Rights Reserved.
+                </div>
             </div>
         </aside>
     );

@@ -1,29 +1,40 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/api"; // MERN API
-import { Check, X, ChevronDown, ChevronUp, Briefcase, Plus, Building, Calendar, Star } from "lucide-react";
+import * as XLSX from 'xlsx';
+import { Check, X, ChevronDown, ChevronUp, Briefcase, Calendar, Star, Upload } from "lucide-react";
 
 export default function CoordinatorFeedback() {
     const { currentUser } = useAuth();
+    const userRole = currentUser?.role;
     const [pendingFeedback, setPendingFeedback] = useState([]);
+    const [companies, setCompanies] = useState([]); // List of companies
     const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState(null);
-    const [isAddingCompany, setIsAddingCompany] = useState(false);
+    const [uploadingFor, setUploadingFor] = useState(null);
+    const [viewingListFor, setViewingListFor] = useState(null); // Company ID to view list
 
-    // New Company Form State
-    const [newCompany, setNewCompany] = useState({
-        name: '',
-        visitDate: '',
-        roles: '',
-        eligibility: '',
-        package: ''
-    });
 
     useEffect(() => {
         if (currentUser) {
             fetchPendingFeedback();
+            fetchCompanies();
         }
     }, [currentUser]);
+
+    const fetchCompanies = async () => {
+        try {
+            const { data } = await api.get('/companies');
+            // Filter only companies for this coordinator's department if necessary, 
+            // but usually they might want to see all or just theirs. 
+            // For now, let's filter by department to keep it clean if desired, or all.
+            // Let's show all for now but highligh theirs? Plan said filtered.
+            // Actually, backend returns all. Let's filter client side for management.
+            setCompanies(data.filter(c => c.department === currentUser.department));
+        } catch (error) {
+            console.error("Error fetching companies:", error);
+        }
+    };
 
     const fetchPendingFeedback = async () => {
         try {
@@ -45,21 +56,52 @@ export default function CoordinatorFeedback() {
         }
     };
 
-    const handleAddCompany = async (e) => {
-        e.preventDefault();
-        try {
-            await api.post('/companies', {
-                ...newCompany,
-                department: currentUser.department,
-                status: 'scheduled'
-            });
-            setIsAddingCompany(false);
-            setNewCompany({ name: '', visitDate: '', roles: '', eligibility: '', package: '' });
-            alert("Company drive added successfully!");
-        } catch (error) {
-            alert("Error adding company: " + error.message);
-        }
+    const handleFileUpload = (e, companyId) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            try {
+                const bstr = evt.target.result;
+                const wb = XLSX.read(bstr, { type: 'binary' });
+                const wsname = wb.SheetNames[0];
+                const ws = wb.Sheets[wsname];
+                const data = XLSX.utils.sheet_to_json(ws);
+
+                const emails = data
+                    .map(row => row['Email'] || row['email'] || row['EMAIL'])
+                    .filter(email => email)
+                    .map(email => String(email).trim().toLowerCase()); // Normalize: string, trim, lowercase
+
+                if (emails.length === 0) {
+                    alert('No emails found in the uploaded sheet. Please ensure there is a column named "Email".');
+                    return;
+                }
+
+                await api.put(`/companies/${companyId}/eligibility`, { eligibleStudents: emails });
+                alert(`Successfully updated eligibility list! Found ${emails.length} students.`);
+                fetchCompanies(); // Refresh data
+                setUploadingFor(null);
+            } catch (error) {
+                console.error("Error processing file:", error);
+                alert("Error processing file: " + error.message);
+            }
+        };
+        reader.readAsBinaryString(file);
     };
+
+    const handleMarkCompleted = async (companyId) => {
+        if (!window.confirm("Are you sure you want to mark this drive as completed? This will open feedback for eligible students.")) return;
+        try {
+            await api.put(`/companies/${companyId}/status`, { status: 'completed' });
+            fetchCompanies();
+            alert("Drive marked as completed!");
+        } catch (error) {
+            console.error("Error updating status:", error);
+            alert("Failed to update status");
+        }
+    }
 
     if (loading) return <div className="p-8 text-center text-gray-500">Loading feedback data...</div>;
 
@@ -71,12 +113,6 @@ export default function CoordinatorFeedback() {
                     <h1 className="text-2xl font-bold text-[#1A237E]">Student's Feedback</h1>
                     <p className="text-slate-500 text-sm">Review submissions & manage placement drives</p>
                 </div>
-                <button
-                    onClick={() => setIsAddingCompany(true)}
-                    className="flex items-center gap-2 bg-[#00897B] hover:bg-[#00796B] text-white px-5 py-2.5 rounded-lg font-bold transition shadow-md hover:shadow-lg active:scale-95"
-                >
-                    <Plus size={18} /> Add A Company
-                </button>
             </div>
 
             {/* Pending Reviews Section */}
@@ -197,74 +233,133 @@ export default function CoordinatorFeedback() {
                 )}
             </div>
 
+            {/* Manage Drives Section */}
+            {userRole !== 'admin' && (
+                <div>
+                    <div className="flex items-center gap-2 mb-4">
+                        <Briefcase size={20} className="text-[#1A237E]" />
+                        <h2 className="text-lg font-bold text-[#1A237E]">Manage Drives</h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {companies.map(company => (
+                            <div key={company._id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 relative group">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 className="font-bold text-lg text-[#1A237E]">{company.name}</h3>
+                                        <p className="text-sm text-slate-500">{company.roles}</p>
+                                    </div>
+                                    <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider ${company.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                                        }`}>
+                                        {company.status}
+                                    </span>
+                                </div>
+
+                                <div className="space-y-3 text-sm text-slate-600 mb-6">
+                                    <p className="flex items-center gap-2"><Calendar size={14} /> {company.visitDate}</p>
+                                    <p className="flex items-center gap-2 text-indigo-600 font-medium">
+                                        <Check size={14} />
+                                        {company.eligibleStudents?.length || 0} Students Eligible
+                                        <button
+                                            onClick={() => setViewingListFor(company)}
+                                            className="ml-2 text-xs font-bold text-indigo-700 underline hover:text-indigo-900"
+                                        >
+                                            (View List)
+                                        </button>
+                                    </p>
+                                </div>
+
+                                <div className="flex gap-2 relative">
+                                    {company.status !== 'completed' && (
+                                        <button
+                                            onClick={() => handleMarkCompleted(company._id)}
+                                            className="flex-1 bg-white border border-green-600 text-green-600 py-2 rounded-lg text-xs font-bold hover:bg-green-50 transition"
+                                        >
+                                            Mark Completed
+                                        </button>
+                                    )}
+
+                                    <button
+                                        onClick={() => setUploadingFor(company._id)}
+                                        className="flex-1 bg-[#1A237E] text-white py-2 rounded-lg text-xs font-bold hover:bg-[#283593] transition flex items-center justify-center gap-2"
+                                    >
+                                        <Upload size={14} /> Upload list
+                                    </button>
+
+                                    {/* Hidden File Input triggered by state */}
+                                    {uploadingFor === company._id && (
+                                        <div className="absolute bottom-full left-0 right-0 bg-white shadow-xl rounded-lg p-3 border border-slate-200 mb-2 z-10 animate-fade-in">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-xs font-bold text-slate-600">Select Excel File</span>
+                                                <button onClick={() => setUploadingFor(null)}><X size={14} className="text-slate-400" /></button>
+                                            </div>
+                                            <input
+                                                type="file"
+                                                accept=".xlsx, .xls"
+                                                onChange={(e) => handleFileUpload(e, company._id)}
+                                                className="block w-full text-xs text-slate-500
+                                            file:mr-2 file:py-1 file:px-2
+                                            file:rounded-full file:border-0
+                                            file:text-xs file:font-semibold
+                                            file:bg-indigo-50 file:text-indigo-700
+                                            hover:file:bg-indigo-100"
+                                            />
+                                            <p className="text-[10px] text-slate-400 mt-1">*Column "Email" required</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+
+                        {companies.length === 0 && (
+                            <div className="col-span-full text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                                <p className="text-slate-500 font-medium">No drives scheduled yet.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Add Company Modal */}
-            {isAddingCompany && (
+
+            {/* View Eligible List Modal */}
+            {viewingListFor && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-0 animate-fade-in relative overflow-hidden">
-                        <div className="bg-[#1A237E] p-6 text-white">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col animate-fade-in-up">
+                        <div className="flex justify-between items-center p-5 border-b border-slate-100">
+                            <div>
+                                <h3 className="font-bold text-lg text-[#1A237E]">Eligible Students</h3>
+                                <p className="text-xs text-slate-500">{viewingListFor.name}</p>
+                            </div>
                             <button
-                                onClick={() => setIsAddingCompany(false)}
-                                className="absolute top-4 right-4 text-white/50 hover:text-white transition"
+                                onClick={() => setViewingListFor(null)}
+                                className="text-slate-400 hover:text-slate-600 transition"
                             >
-                                <X size={24} />
+                                <X size={20} />
                             </button>
-                            <h2 className="text-xl font-bold flex items-center gap-2">
-                                <Building size={24} /> Add New Company
-                            </h2>
-                            <p className="text-blue-200 text-sm mt-1">Schedule a new placement drive</p>
                         </div>
-
-                        <form onSubmit={handleAddCompany} className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Company Name</label>
-                                <input
-                                    type="text" required
-                                    className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
-                                    value={newCompany.name} onChange={e => setNewCompany({ ...newCompany, name: e.target.value })}
-                                    placeholder="e.g. Google"
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Visit Date</label>
-                                    <input
-                                        type="date" required
-                                        className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
-                                        value={newCompany.visitDate} onChange={e => setNewCompany({ ...newCompany, visitDate: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Package (LPA)</label>
-                                    <input
-                                        type="text"
-                                        className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
-                                        value={newCompany.package} onChange={e => setNewCompany({ ...newCompany, package: e.target.value })}
-                                        placeholder="e.g. 12 LPA"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Roles Offered</label>
-                                <input
-                                    type="text" required
-                                    className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
-                                    value={newCompany.roles} onChange={e => setNewCompany({ ...newCompany, roles: e.target.value })}
-                                    placeholder="e.g. SDE, Data Analyst"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Eligibility Criteria</label>
-                                <textarea
-                                    className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white resize-none h-24"
-                                    value={newCompany.eligibility} onChange={e => setNewCompany({ ...newCompany, eligibility: e.target.value })}
-                                    placeholder="CGPA > 8.0, No Standing Arrears..."
-                                />
-                            </div>
-
-                            <button type="submit" className="w-full bg-[#1A237E] hover:bg-[#283593] text-white font-bold py-3.5 rounded-lg mt-2 shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
-                                <Plus size={18} /> Schedule Drive
+                        <div className="overflow-y-auto p-5 space-y-2">
+                            {viewingListFor.eligibleStudents && viewingListFor.eligibleStudents.length > 0 ? (
+                                viewingListFor.eligibleStudents.map((email, idx) => (
+                                    <div key={idx} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100 text-sm">
+                                        <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
+                                            {idx + 1}
+                                        </div>
+                                        <span className="text-slate-700 font-medium truncate">{email}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-center text-slate-500 py-10">No students added yet.</p>
+                            )}
+                        </div>
+                        <div className="p-5 border-t border-slate-100 bg-slate-50">
+                            <button
+                                onClick={() => setViewingListFor(null)}
+                                className="w-full bg-[#1A237E] hover:bg-[#283593] text-white py-2.5 rounded-lg font-bold transition"
+                            >
+                                Close
                             </button>
-                        </form>
+                        </div>
                     </div>
                 </div>
             )}

@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/api"; // MERN API
-import { Plus, ChevronRight, BarChart2, BookOpen, ExternalLink, XCircle, FileText } from "lucide-react";
+import { XCircle, FileText, Calendar } from "lucide-react";
 
 export default function StudentDashboard() {
     const { currentUser } = useAuth();
-    const [feedbacks, setFeedbacks] = useState([]);
+    const [availableCompanies, setAvailableCompanies] = useState([]); // Companies open for feedback
+    const [approvedFeedbacks, setApprovedFeedbacks] = useState([]); // All approved feedbacks (Global View)
     const [loading, setLoading] = useState(true);
-    const [showForm, setShowForm] = useState(false);
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+    const [selectedCompany, setSelectedCompany] = useState(null);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -22,17 +24,27 @@ export default function StudentDashboard() {
 
     useEffect(() => {
         if (currentUser) {
-            fetchFeedbacks();
+            fetchDashboardData();
         }
     }, [currentUser]);
 
-    const fetchFeedbacks = async () => {
+    const fetchDashboardData = async () => {
         try {
-            // Fetch ALL approved feedbacks for the student to read
-            const { data } = await api.get('/feedback?status=approved');
-            setFeedbacks(data);
+            // 1. Fetch Companies for "Give Feedback"
+            // Filter: Status 'completed' AND Student Email in 'eligibleStudents'
+            const companyRes = await api.get('/companies');
+            const eligible = companyRes.data.filter(c =>
+                c.status === 'completed' &&
+                c.eligibleStudents?.map(e => e.toLowerCase()).includes(currentUser.email.toLowerCase())
+            );
+            setAvailableCompanies(eligible);
+
+            // 2. Fetch All Approved Feedbacks (Global View)
+            const feedbackRes = await api.get('/feedback?status=approved');
+            setApprovedFeedbacks(feedbackRes.data);
+
         } catch (error) {
-            console.error("Error fetching feedbacks:", error);
+            console.error("Error fetching student dashboard data:", error);
         }
         setLoading(false);
     };
@@ -55,7 +67,7 @@ export default function StudentDashboard() {
                 department: currentUser.department
             });
             alert("Feedback submitted successfully! Waiting for approval.");
-            setShowForm(false);
+            setShowFeedbackModal(false); // Changed from setShowForm to setShowFeedbackModal
             setFormData({
                 companyName: '',
                 jobRole: '',
@@ -65,7 +77,7 @@ export default function StudentDashboard() {
                 rounds: [{ name: '', questions: '' }],
                 difficulty: 'Medium'
             });
-            fetchFeedbacks(); // Refresh list
+            fetchDashboardData(); // Refresh list
         } catch (error) {
             console.error("Error submitting feedback:", error);
             alert("Failed to submit feedback.");
@@ -95,122 +107,99 @@ export default function StudentDashboard() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* 2. Left Column: Help Juniors / Pending Feedbacks */}
-                <div className="lg:col-span-2 space-y-6">
+            <div className="grid grid-cols-1 gap-6">
+                {/* 2. Main Content: Help Juniors / Pending Feedbacks */}
+                <div className="space-y-6">
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[400px]">
                         <div className="flex justify-between items-center mb-6">
                             <div>
                                 <h2 className="text-xl font-bold text-slate-800">Help Your Juniors Grow!</h2>
                                 <p className="text-sm text-slate-500 font-medium">Pending feedback reviews</p>
                             </div>
-                            <button
-                                onClick={() => setShowForm(true)}
-                                className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-md hover:shadow-lg transform active:scale-95"
-                            >
-                                <Plus size={18} /> Add New
-                            </button>
+
                         </div>
 
                         <div className="space-y-4">
-                            {/* List Pending/Approved Feedbacks from State */}
-                            {feedbacks.length === 0 ? (
-                                <div className="text-center py-16 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                    <div className="inline-flex p-4 bg-white rounded-full shadow-sm mb-3 text-slate-300">
-                                        <FileText size={32} />
-                                    </div>
-                                    <p className="text-slate-500 font-medium">No feedbacks submitted yet.</p>
-                                    <button onClick={() => setShowForm(true)} className="text-sky-600 font-bold mt-2 hover:underline hover:text-sky-700">Start here</button>
-                                </div>
-                            ) : (
-                                feedbacks.map(item => (
-                                    <div key={item._id} className="bg-slate-50 hover:bg-white transition-all duration-200 rounded-xl p-5 flex justify-between items-center group cursor-pointer border border-slate-100 hover:border-sky-500/30 hover:shadow-md">
-                                        <div>
-                                            <h3 className="font-bold text-lg text-slate-800 group-hover:text-indigo-900 transition-colors">{item.companyName}</h3>
-                                            <p className="text-sm text-slate-500 font-medium">{item.jobRole || "Software Engineer"} • <span className="text-xs bg-slate-200 px-1.5 py-0.5 rounded text-slate-600">{item.difficulty || "Medium"}</span></p>
+                            {/* 1. Eligible Drives (Give Feedback) */}
+                            <div>
+                                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">Your Eligible Drives</h3>
+                                {availableCompanies.length === 0 ? (
+                                    <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                        <div className="inline-flex p-3 bg-white rounded-full shadow-sm mb-3 text-slate-300">
+                                            <FileText size={24} />
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${item.status === 'approved' ? 'bg-green-100 text-green-700' :
-                                                item.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                                                    'bg-amber-100 text-amber-700'
-                                                }`}>
-                                                {item.status}
-                                            </span>
-                                            <div className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:bg-sky-500 group-hover:text-white transition-all">
-                                                <ChevronRight size={18} />
+                                        <p className="text-slate-500 font-medium">No pending feedbacks.</p>
+                                        <p className="text-xs text-slate-400">You can only give feedback for drives you attended.</p>
+                                    </div>
+                                ) : (
+                                    availableCompanies.map(company => (
+                                        <div key={company._id} className="bg-white rounded-xl p-5 border border-indigo-100 shadow-sm hover:shadow-md transition-all mb-4 relative overflow-hidden group">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="font-bold text-lg text-indigo-900">{company.name}</h3>
+                                                    <p className="text-sm text-slate-500">{company.roles}</p>
+                                                    <div className="flex items-center gap-4 mt-2 text-xs text-slate-400 font-medium">
+                                                        <span className="flex items-center gap-1"><Calendar size={12} /> {company.visitDate}</span>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedCompany(company);
+                                                        setFormData({
+                                                            ...formData,
+                                                            companyName: company.name,
+                                                            jobRole: company.roles,
+                                                            driveDate: company.visitDate
+                                                        });
+                                                        setShowFeedbackModal(true);
+                                                    }}
+                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md transition transform active:scale-95"
+                                                >
+                                                    Give Feedback
+                                                </button>
                                             </div>
                                         </div>
+                                    ))
+                                )}
+                            </div>
+
+                            {/* 2. Global Approved Feedbacks (Read Only) */}
+                            <div className="pt-6 border-t border-slate-100">
+                                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">Latest Student Experiences</h3>
+                                {approvedFeedbacks.length === 0 ? (
+                                    <div className="text-center py-8 text-slate-400 italic text-sm">
+                                        No experiences shared yet.
                                     </div>
-                                ))
-                            )}
+                                ) : (
+                                    <div className="space-y-4">
+                                        {approvedFeedbacks.map(fb => (
+                                            <div key={fb._id} className="bg-slate-50 hover:bg-white p-4 rounded-xl border border-slate-100 transition duration-200">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div>
+                                                        <h4 className="font-bold text-slate-700">{fb.companyName}</h4>
+                                                        <span className="text-xs text-slate-500">{fb.jobRole}</span>
+                                                    </div>
+                                                    <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded">APPROVED</span>
+                                                </div>
+                                                <p className="text-sm text-slate-600 line-clamp-2 italic">"{fb.overallExperience}"</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* 3. Right Column: Widgets */}
-                <div className="space-y-6">
-                    {/* My Analytics Widget */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
-                                <BarChart2 size={20} />
-                            </div>
-                            <h3 className="font-bold text-slate-800">My Activity</h3>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-3 bg-slate-50 rounded-lg text-center border-l-4 border-indigo-900">
-                                <span className="block text-2xl font-bold text-indigo-900">{feedbacks.length}</span>
-                                <span className="text-xs text-slate-500 uppercase font-bold tracking-wider">Total</span>
-                            </div>
-                            <div className="p-3 bg-slate-50 rounded-lg text-center border-l-4 border-teal-500">
-                                <span className="block text-2xl font-bold text-teal-600">{feedbacks.filter(f => f.status === 'approved').length}</span>
-                                <span className="text-xs text-teal-600 uppercase font-bold tracking-wider">Approved</span>
-                            </div>
-                            <div className="col-span-2 p-3 bg-amber-50 rounded-lg flex justify-between items-center px-6 border border-amber-100">
-                                <span className="text-sm font-bold text-amber-800">Pending Review</span>
-                                <span className="text-xl font-bold text-amber-800">{feedbacks.filter(f => f.status === 'pending').length}</span>
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* Quick Resources Widget */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-sky-50 rounded-lg text-sky-600">
-                                <BookOpen size={20} />
-                            </div>
-                            <h3 className="font-bold text-slate-800">Prep Resources</h3>
-                        </div>
-                        <ul className="space-y-3">
-                            <li>
-                                <a href="https://www.geeksforgeeks.org/" target="_blank" rel="noreferrer" className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition group border border-transparent hover:border-slate-200">
-                                    <span className="text-sm font-medium text-slate-600 group-hover:text-indigo-900">GeeksforGeeks</span>
-                                    <ExternalLink size={14} className="text-slate-300 group-hover:text-sky-500" />
-                                </a>
-                            </li>
-                            <li>
-                                <a href="https://leetcode.com/" target="_blank" rel="noreferrer" className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition group border border-transparent hover:border-slate-200">
-                                    <span className="text-sm font-medium text-slate-600 group-hover:text-indigo-900">LeetCode</span>
-                                    <ExternalLink size={14} className="text-slate-300 group-hover:text-sky-500" />
-                                </a>
-                            </li>
-                            <li>
-                                <a href="https://www.indiabix.com/" target="_blank" rel="noreferrer" className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition group border border-transparent hover:border-slate-200">
-                                    <span className="text-sm font-medium text-slate-600 group-hover:text-indigo-900">IndiaBix (Aptitude)</span>
-                                    <ExternalLink size={14} className="text-slate-300 group-hover:text-sky-500" />
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
             </div>
 
             {/* Submission Form Modal (Overlay) */}
-            {showForm && (
+            {showFeedbackModal && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-8 relative animate-fade-in-up">
                         <button
-                            onClick={() => setShowForm(false)}
+                            onClick={() => setShowFeedbackModal(false)}
                             className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
                         >
                             <XCircle size={24} />
@@ -221,7 +210,7 @@ export default function StudentDashboard() {
                                 <FileText size={24} />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold text-gray-800">Submit New Feedback</h2>
+                                <h2 className="text-xl font-bold text-gray-800">Submit Feedback: {selectedCompany?.name}</h2>
                                 <p className="text-xs text-gray-500">Share your experience to help juniors</p>
                             </div>
                         </div>
@@ -230,15 +219,18 @@ export default function StudentDashboard() {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Company Name</label>
-                                    <input type="text" className="w-full border border-gray-200 bg-gray-50 rounded-lg p-3 focus:ring-2 focus:ring-academic-teal outline-none transition"
-                                        value={formData.companyName} onChange={e => setFormData({ ...formData, companyName: e.target.value })} required placeholder="e.g. Zoho" />
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Company Name</label>
+                                    <input type="text" className="w-full border border-gray-200 bg-gray-100 text-gray-500 rounded-lg p-3 focus:ring-0 outline-none cursor-not-allowed"
+                                        value={formData.companyName} readOnly />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Drive Date</label>
-                                    <input type="date" className="w-full border border-gray-200 bg-gray-50 rounded-lg p-3 focus:ring-2 focus:ring-academic-teal outline-none transition"
-                                        value={formData.driveDate} onChange={e => setFormData({ ...formData, driveDate: e.target.value })} required />
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Drive Date</label>
+                                    <input type="date" className="w-full border border-gray-200 bg-gray-100 text-gray-500 rounded-lg p-3 focus:ring-0 outline-none cursor-not-allowed"
+                                        value={formData.driveDate} readOnly />
                                 </div>
                                 <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Job Role</label>
                                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Job Role</label>
                                     <input type="text" className="w-full border border-gray-200 bg-gray-50 rounded-lg p-3 focus:ring-2 focus:ring-academic-teal outline-none transition"
                                         value={formData.jobRole} onChange={e => setFormData({ ...formData, jobRole: e.target.value })} required placeholder="e.g. Developer" />
@@ -291,7 +283,7 @@ export default function StudentDashboard() {
                             </div>
 
                             <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
-                                <button type="button" onClick={() => setShowForm(false)} className="px-6 py-2.5 text-gray-500 font-semibold hover:bg-gray-50 rounded-lg transition">Cancel</button>
+                                <button type="button" onClick={() => setShowFeedbackModal(false)} className="px-6 py-2.5 text-gray-500 font-semibold hover:bg-gray-50 rounded-lg transition">Cancel</button>
                                 <button type="submit" className="px-8 py-2.5 bg-academic-blue hover:bg-blue-900 text-white font-bold rounded-lg shadow-lg transform active:scale-95 transition">Submit Application</button>
                             </div>
                         </form>

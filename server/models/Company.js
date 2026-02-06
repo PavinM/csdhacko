@@ -7,7 +7,7 @@ const companySchema = mongoose.Schema({
     eligibility: { type: String },
     salaryPackage: { type: String }, // e.g. "12 LPA"
     department: { type: String, required: true }, // Which department is hosting/coordinating
-
+    eligibleStudents: { type: [String], default: [] }, // Array of student emails
     status: { type: String, default: 'scheduled', enum: ['scheduled', 'completed', 'cancelled'] },
 
     createdAt: { type: Date, default: Date.now }
