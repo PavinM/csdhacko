@@ -27,9 +27,21 @@ export default function Sidebar() {
         },
         {
             role: 'coordinator',
-            label: 'Feedback Review',
+            label: 'Dashboard',
             path: '/coordinator',
-            icon: CheckSquare
+            icon: LayoutDashboard
+        },
+        {
+            role: 'coordinator',
+            label: 'Student Management',
+            path: '/coordinator/students',
+            icon: Users
+        },
+        {
+            role: 'coordinator',
+            label: 'Students\' Feedback',
+            path: '/coordinator/feedback',
+            icon: FileText
         },
         {
             role: 'admin',
@@ -39,7 +51,10 @@ export default function Sidebar() {
         },
     ];
 
-    const relevantNav = navItems.filter(item => item.role === userRole);
+    const relevantNav = navItems.filter(item => {
+        if (userRole === 'admin') return item.role === 'admin' || item.role === 'coordinator';
+        return item.role === userRole;
+    });
 
     return (
         <aside className="w-72 bg-[#003366] text-white min-h-screen fixed left-0 top-0 hidden md:flex flex-col shadow-2xl z-50">

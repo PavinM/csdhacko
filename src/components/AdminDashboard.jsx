@@ -1,30 +1,50 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { db } from "../lib/firebase";
-import { collection, query, getDocs } from "firebase/firestore";
-import { Users, Building, BarChart2, MoreVertical, Search, UserPlus, X } from "lucide-react";
+import api from "../lib/api"; // MERN API
+import { Users, Building, BarChart2, MoreVertical, Search, UserPlus, X, Star, FileCheck, CheckCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function AdminDashboard() {
     const { currentUser, createUser } = useAuth();
     const [users, setUsers] = useState([]);
+    const [dashboardData, setDashboardData] = useState({
+        pendingFeedback: 0,
+        totalFeedback: 0,
+        companies: 0,
+        approved: 0,
+        totalUsers: 0
+    });
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
     const [newUser, setNewUser] = useState({ name: '', email: '', password: '', department: '' });
 
     useEffect(() => {
         if (currentUser) {
-            fetchUsers();
+            fetchAllData();
         }
     }, [currentUser]);
 
-    const fetchUsers = async () => {
+    const fetchAllData = async () => {
         try {
-            const q = query(collection(db, "users"));
-            const querySnapshot = await getDocs(q);
-            const list = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setUsers(list);
+            const [usersRes, feedbackRes, companiesRes] = await Promise.all([
+                api.get('/users'),
+                api.get('/feedback'), // Admin sees all feedback
+                api.get('/companies')
+            ]);
+
+            setUsers(usersRes.data);
+            const feedbacks = feedbackRes.data;
+
+            setDashboardData({
+                totalUsers: usersRes.data.length,
+                pendingFeedback: feedbacks.filter(f => f.status === 'pending').length,
+                totalFeedback: feedbacks.length,
+                approved: feedbacks.filter(f => f.status === 'approved').length,
+                companies: companiesRes.data.length
+            });
+
         } catch (error) {
-            console.error("Error fetching users:", error);
+            console.error("Error fetching admin data:", error);
         }
         setLoading(false);
     };
@@ -39,7 +59,7 @@ export default function AdminDashboard() {
             });
             setIsCreating(false);
             setNewUser({ name: '', email: '', password: '', department: '' });
-            fetchUsers(); // Refresh list
+            fetchAllData(); // Refresh list
             alert("Coordinator created successfully!");
         } catch (error) {
             alert("Error creating user: " + error.message);
@@ -49,9 +69,10 @@ export default function AdminDashboard() {
     if (loading) return <div className="p-8 text-center text-gray-500">Loading system data...</div>;
 
     const stats = [
-        { label: 'Total Users', value: users.length, icon: Users, color: 'bg-sky-500' },
-        { label: 'Departments', value: '3', icon: Building, color: 'bg-teal-500' },
-        { label: 'Active Drives', value: '12', icon: BarChart2, color: 'bg-purple-500' },
+        { label: 'Pending Approvals', value: dashboardData.pendingFeedback, icon: Star, color: 'bg-amber-500' },
+        { label: 'Total Feedbacks', value: dashboardData.totalFeedback, icon: FileCheck, color: 'bg-indigo-600' },
+        { label: 'System Users', value: users.length, icon: Users, color: 'bg-sky-500' },
+        { label: 'Active Drives', value: dashboardData.companies, icon: BarChart2, color: 'bg-teal-500' },
     ];
 
     return (
@@ -60,14 +81,19 @@ export default function AdminDashboard() {
             <div className="flex justify-between items-end">
                 <div>
                     <h1 className="text-2xl font-bold text-indigo-900">System Administration</h1>
-                    <p className="text-slate-500 text-sm">Overview and User Management</p>
+                    <p className="text-slate-500 text-sm">Overview, User Management & System Stats</p>
                 </div>
-                <button
-                    onClick={() => setIsCreating(true)}
-                    className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-bold transition shadow-md"
-                >
-                    <UserPlus size={18} /> New Coordinator
-                </button>
+                <div className="flex gap-3">
+                    <Link to="/coordinator/feedback" className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold transition shadow-md">
+                        <FileCheck size={18} /> Manage Feedbacks
+                    </Link>
+                    <button
+                        onClick={() => setIsCreating(true)}
+                        className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-bold transition shadow-md"
+                    >
+                        <UserPlus size={18} /> New Coordinator
+                    </button>
+                </div>
             </div>
 
             {/* Creation Modal */}
@@ -124,7 +150,7 @@ export default function AdminDashboard() {
             )}
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {stats.map((stat, idx) => (
                     <div key={idx} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
                         <div>
@@ -137,6 +163,24 @@ export default function AdminDashboard() {
                     </div>
                 ))}
             </div>
+
+            {/* Action Required Banner - Copied from Coordinator Dashboard logic */}
+            {dashboardData.pendingFeedback > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 flex justify-between items-center">
+                    <div className="flex gap-4 items-center">
+                        <div className="p-3 bg-amber-100 rounded-full text-amber-600">
+                            <Star size={24} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-amber-900">Pending Approvals</h3>
+                            <p className="text-amber-700 text-sm">There are {dashboardData.pendingFeedback} feedback submissions waiting for review.</p>
+                        </div>
+                    </div>
+                    <Link to="/coordinator/feedback" className="bg-amber-600 text-white px-5 py-2.5 rounded-lg font-bold hover:bg-amber-700 transition shadow-sm">
+                        Review Now
+                    </Link>
+                </div>
+            )}
 
             {/* User Table Card */}
             <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
@@ -164,7 +208,7 @@ export default function AdminDashboard() {
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                             {users.map(user => (
-                                <tr key={user.id} className="hover:bg-slate-50 transition-colors">
+                                <tr key={user._id} className="hover:bg-slate-50 transition-colors">
                                     <td className="p-5">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-sky-50 flex items-center justify-center text-xs font-bold text-sky-600 border border-sky-100">

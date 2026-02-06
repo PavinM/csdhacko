@@ -1,6 +1,5 @@
-import { createContext, useContext, useState } from "react";
-import { db } from "../lib/firebase";
-import { collection, query, where, getDocs, setDoc, doc, serverTimestamp } from "firebase/firestore";
+import { createContext, useContext, useState, useEffect } from "react";
+import api from "../lib/api";
 
 const AuthContext = createContext();
 
@@ -9,112 +8,95 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }) {
-    const [currentUser, setCurrentUser] = useState(() => {
-        const cached = localStorage.getItem("authToken");
-        return cached ? JSON.parse(cached) : null;
-    });
-    const [userRole, setUserRole] = useState(() => {
-        const cached = localStorage.getItem("authToken");
-        return cached ? JSON.parse(cached).role : null;
-    });
-    const [loading, setLoading] = useState(false);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [userRole, setUserRole] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        // Check for stored user on mount
+        const storedUser = localStorage.getItem("user");
+
+        if (storedUser) {
+            try {
+                const user = JSON.parse(storedUser);
+                setCurrentUser(user);
+                setUserRole(user.role);
+            } catch (error) {
+                console.error("Failed to parse stored user", error);
+                localStorage.removeItem("user");
+            }
+        }
+        setLoading(false);
+    }, []);
 
     // Login Function
     const login = async (email, password) => {
         setLoading(true);
+        console.log("AuthContext: Attempting login for", email);
+        alert("DEBUG: Starting login process...");
         try {
-            const usersRef = collection(db, "users");
-            const q = query(usersRef, where("email", "==", email), where("password", "==", password));
-            const querySnapshot = await getDocs(q);
+            const { data } = await api.post('/auth/login', { email, password });
+            console.log("AuthContext: Login success, received data:", data);
+            alert("DEBUG: API Success! Data Received: " + JSON.stringify(data).substring(0, 100));
 
-            if (querySnapshot.empty) {
-                throw new Error("Invalid email or password");
-            }
+            // Data should contain user info + token
+            setCurrentUser(data);
+            setUserRole(data.role);
+            localStorage.setItem("user", JSON.stringify(data));
 
-            const userDoc = querySnapshot.docs[0];
-            const userData = userDoc.data();
-            const fullUser = { uid: userDoc.id, ...userData };
+            // Verify immediate storage
+            const check = localStorage.getItem("user");
+            alert("DEBUG: Verify Storage: " + (check ? "SAVED OK" : "SAVE FAILED"));
 
-            setCurrentUser(fullUser);
-            setUserRole(userData.role);
-            localStorage.setItem("authToken", JSON.stringify(fullUser));
+            console.log("AuthContext: State updated. Role:", data.role);
+
             return true;
         } catch (error) {
-            console.error("Login Error:", error);
-            throw error;
+            console.error("Login Error:", error.response?.data?.message || error.message);
+            alert("DEBUG: Login API Failed: " + (error.response?.data?.message || error.message));
+            throw new Error(error.response?.data?.message || "Invalid email or password");
         } finally {
             setLoading(false);
         }
     };
 
-    // Signup Function
+    // Signup Function (Public Registration)
     const signup = async (email, password, additionalData) => {
         setLoading(true);
         try {
-            // Check if user already exists
-            const usersRef = collection(db, "users");
-            const q = query(usersRef, where("email", "==", email));
-            const querySnapshot = await getDocs(q);
-
-            if (!querySnapshot.empty) {
-                throw new Error("User already exists with this email");
-            }
-
-            // Create new user document
-            const newUserRef = doc(collection(db, "users"));
-
-            const newUser = {
-                uid: newUserRef.id,
+            const { data } = await api.post('/auth/register', {
                 email,
-                password, // Note: Storing password as plain text for simplicity as requested
-                ...additionalData,
-                createdAt: serverTimestamp()
-            };
+                password,
+                ...additionalData
+            });
 
-            await setDoc(newUserRef, newUser);
+            setCurrentUser(data);
+            setUserRole(data.role);
+            localStorage.setItem("user", JSON.stringify(data));
 
-            // Create local user object (serverTimestamp is not JSON serializable, so we use current date for local)
-            const localUser = { ...newUser, createdAt: new Date().toISOString() };
-
-            setCurrentUser(localUser);
-            setUserRole(additionalData.role);
-            localStorage.setItem("authToken", JSON.stringify(localUser));
             return true;
-
         } catch (error) {
-            console.error("Signup Error:", error);
-            throw error;
+            console.error("Signup Error:", error.response?.data?.message || error.message);
+            throw new Error(error.response?.data?.message || "Failed to create account");
         } finally {
             setLoading(false);
         }
     };
 
-    // Create User (Admin/Coordinator feature - does not log in)
+    // Create User (Admin/Coordinator feature - adds student/user without logging in)
     const createUser = async (email, password, additionalData) => {
         setLoading(true);
         try {
-            const usersRef = collection(db, "users");
-            const q = query(usersRef, where("email", "==", email));
-            const querySnapshot = await getDocs(q);
-
-            if (!querySnapshot.empty) {
-                throw new Error("User already exists with this email");
-            }
-
-            const newUserRef = doc(collection(db, "users"));
-            const newUser = {
-                uid: newUserRef.id,
+            // This endpoint is protected, axios interceptor will handle token
+            await api.post('/users', {
                 email,
                 password,
-                ...additionalData,
-                createdAt: serverTimestamp()
-            };
-
-            await setDoc(newUserRef, newUser);
+                ...additionalData
+            });
             return true;
         } catch (error) {
-            console.error("Create User Error:", error);
-            throw error;
+            console.error("Create User Error:", error.response?.data?.message || error.message);
+            throw new Error(error.response?.data?.message || "Failed to create user");
         } finally {
             setLoading(false);
         }
@@ -124,7 +106,8 @@ export function AuthProvider({ children }) {
     const logout = () => {
         setCurrentUser(null);
         setUserRole(null);
-        localStorage.removeItem("authToken");
+        localStorage.removeItem("user");
+        // Optional: Call API to invalidate token if using server-side sessions
     };
 
     const value = {
@@ -139,7 +122,7 @@ export function AuthProvider({ children }) {
 
     return (
         <AuthContext.Provider value={value}>
-            {children}
+            {!loading && children}
         </AuthContext.Provider>
     );
 }

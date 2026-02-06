@@ -1,24 +1,23 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { db } from "../lib/firebase";
-import { collection, addDoc, query, where, getDocs, serverTimestamp } from "firebase/firestore";
-import { Plus, CheckCircle, XCircle, FileText, Calendar, Briefcase, Sparkles, ChevronRight, BarChart2, BookOpen, ExternalLink } from "lucide-react";
+import api from "../lib/api"; // MERN API
+import { Plus, ChevronRight, BarChart2, BookOpen, ExternalLink, XCircle, FileText } from "lucide-react";
 
 export default function StudentDashboard() {
     const { currentUser } = useAuth();
     const [feedbacks, setFeedbacks] = useState([]);
-    const [showForm, setShowForm] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [showForm, setShowForm] = useState(false);
 
     // Form State
     const [formData, setFormData] = useState({
-        companyName: "",
-        driveDate: "",
-        jobRole: "",
-        rounds: [{ name: "", questions: "" }],
-        difficulty: "Medium",
-        overallExperience: "",
-        preparationTips: ""
+        companyName: '',
+        jobRole: '',
+        driveDate: '',
+        overallExperience: '',
+        preparationTips: '',
+        rounds: [{ name: '', questions: '' }],
+        difficulty: 'Medium'
     });
 
     useEffect(() => {
@@ -29,16 +28,11 @@ export default function StudentDashboard() {
 
     const fetchFeedbacks = async () => {
         try {
-            const q = query(
-                collection(db, "feedback"),
-                where("department", "==", currentUser.department)
-            );
-            const querySnapshot = await getDocs(q);
-            const feedbackList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            const relevantFeedback = feedbackList.filter(f => f.studentId === currentUser.uid || f.status === 'approved');
-            setFeedbacks(relevantFeedback);
+            // Fetch ALL approved feedbacks for the student to read
+            const { data } = await api.get('/feedback?status=approved');
+            setFeedbacks(data);
         } catch (error) {
-            console.error("Error fetching feedback:", error);
+            console.error("Error fetching feedbacks:", error);
         }
         setLoading(false);
     };
@@ -56,27 +50,25 @@ export default function StudentDashboard() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await addDoc(collection(db, "feedback"), {
+            await api.post('/feedback', {
                 ...formData,
-                studentId: currentUser.uid,
-                studentName: currentUser.name,
-                department: currentUser.department,
-                status: "pending",
-                createdAt: serverTimestamp()
+                department: currentUser.department
             });
+            alert("Feedback submitted successfully! Waiting for approval.");
             setShowForm(false);
-            fetchFeedbacks();
             setFormData({
-                companyName: "",
-                driveDate: "",
-                jobRole: "",
-                rounds: [{ name: "", questions: "" }],
-                difficulty: "Medium",
-                overallExperience: "",
-                preparationTips: ""
+                companyName: '',
+                jobRole: '',
+                driveDate: '',
+                overallExperience: '',
+                preparationTips: '',
+                rounds: [{ name: '', questions: '' }],
+                difficulty: 'Medium'
             });
+            fetchFeedbacks(); // Refresh list
         } catch (error) {
             console.error("Error submitting feedback:", error);
+            alert("Failed to submit feedback.");
         }
     };
 
@@ -132,7 +124,7 @@ export default function StudentDashboard() {
                                 </div>
                             ) : (
                                 feedbacks.map(item => (
-                                    <div key={item.id} className="bg-slate-50 hover:bg-white transition-all duration-200 rounded-xl p-5 flex justify-between items-center group cursor-pointer border border-slate-100 hover:border-sky-500/30 hover:shadow-md">
+                                    <div key={item._id} className="bg-slate-50 hover:bg-white transition-all duration-200 rounded-xl p-5 flex justify-between items-center group cursor-pointer border border-slate-100 hover:border-sky-500/30 hover:shadow-md">
                                         <div>
                                             <h3 className="font-bold text-lg text-slate-800 group-hover:text-indigo-900 transition-colors">{item.companyName}</h3>
                                             <p className="text-sm text-slate-500 font-medium">{item.jobRole || "Software Engineer"} • <span className="text-xs bg-slate-200 px-1.5 py-0.5 rounded text-slate-600">{item.difficulty || "Medium"}</span></p>
@@ -235,7 +227,6 @@ export default function StudentDashboard() {
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
-                            {/* ... kept existing form fields ... */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Company Name</label>

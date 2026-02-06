@@ -18,9 +18,15 @@ export default function Login() {
 
     useEffect(() => {
         if (currentUser && userRole) {
-            navigate(`/${userRole}`);
+            console.log(`Login: Authenticated as ${userRole}, waiting to navigate...`);
+            // FORCE REFRESH TO ENSURE STATE IS SYNCED
+            setTimeout(() => {
+                window.location.href = `/${userRole}`;
+            }, 1000);
         }
     }, [currentUser, userRole, navigate]);
+
+
 
     const handleAuth = async (e) => {
         e.preventDefault();
@@ -32,7 +38,8 @@ export default function Login() {
                 await signup(email, password, {
                     name,
                     role,
-                    department: role === "admin" ? null : department
+                    // Fix: Provide default department for Admin as it's required by backend
+                    department: role === "admin" ? "Administration" : department
                 });
             }
         } catch (err) {

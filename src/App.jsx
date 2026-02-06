@@ -6,6 +6,8 @@ import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
 import StudentDashboard from "./components/StudentDashboard";
 import CoordinatorDashboard from "./components/CoordinatorDashboard";
+import StudentManagement from "./components/StudentManagement";
+import CoordinatorFeedback from "./components/CoordinatorFeedback";
 import AdminDashboard from "./components/AdminDashboard";
 
 function PrivateRoute({ children, allowedRoles }) {
@@ -14,11 +16,27 @@ function PrivateRoute({ children, allowedRoles }) {
   if (loading) return <div className="flex h-screen items-center justify-center text-academic-blue font-semibold">Loading Portal...</div>;
 
   if (!currentUser) {
-    return <Navigate to="/login" />;
+    console.log("PrivateRoute: No currentUser");
+    // SHOW DEBUG SCREEN
+    return (
+      <div className="flex h-screen items-center justify-center bg-red-100 flex-col gap-4">
+        <h1 className="text-3xl font-bold text-red-800">Access Error: No User Found</h1>
+        <p className="text-lg">PrivateRoute could not find 'currentUser' in AuthContext.</p>
+        <p className="text-sm text-gray-600">Redirecting to login in 5 seconds...</p>
+        {/* Self-redirect after delay */}
+        <meta httpEquiv="refresh" content="5;url=/login" />
+      </div>
+    );
   }
 
   if (allowedRoles && !allowedRoles.includes(userRole)) {
-    return <div className="text-center mt-20 text-red-600 font-bold">Access Denied</div>;
+    return (
+      <div className="flex h-screen items-center justify-center bg-yellow-100 flex-col gap-4">
+        <h1 className="text-3xl font-bold text-yellow-800">Access Denied: Role Mismatch</h1>
+        <p className="text-lg">Your Role: <strong>{userRole}</strong></p>
+        <p className="text-lg">Allowed Roles: <strong>{allowedRoles.join(', ')}</strong></p>
+      </div>
+    );
   }
 
   return children;
@@ -72,7 +90,7 @@ function App() {
             } />
 
             <Route path="/coordinator" element={
-              <PrivateRoute allowedRoles={['coordinator']}>
+              <PrivateRoute allowedRoles={['coordinator', 'admin']}>
                 <CoordinatorDashboard />
               </PrivateRoute>
             } />
@@ -80,6 +98,19 @@ function App() {
             <Route path="/admin" element={
               <PrivateRoute allowedRoles={['admin']}>
                 <AdminDashboard />
+              </PrivateRoute>
+            } />
+
+            {/* Coordinator Sub-routes */}
+            <Route path="/coordinator/students" element={
+              <PrivateRoute allowedRoles={['coordinator', 'admin']}>
+                <StudentManagement />
+              </PrivateRoute>
+            } />
+
+            <Route path="/coordinator/feedback" element={
+              <PrivateRoute allowedRoles={['coordinator', 'admin']}>
+                <CoordinatorFeedback />
               </PrivateRoute>
             } />
 
