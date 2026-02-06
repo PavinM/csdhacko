@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/api"; // MERN API
 import * as XLSX from 'xlsx';
-import { Users, Building, BarChart2, MoreVertical, Search, UserPlus, X, Star, FileCheck, CheckCircle, Plus, Upload, FileSpreadsheet } from "lucide-react";
+import { Users, Building, BarChart2, MoreVertical, Search, UserPlus, X, Star, FileCheck, CheckCircle, Plus, Upload, FileSpreadsheet, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function AdminDashboard() {
@@ -127,6 +127,20 @@ export default function AdminDashboard() {
             }
         };
         reader.readAsBinaryString(file);
+    };
+
+
+
+    const handleDeleteUser = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this user?")) return;
+        try {
+            await api.delete(`/users/${id}`);
+            setUsers(prev => prev.filter(u => u._id !== id));
+            alert("User deleted successfully");
+        } catch (error) {
+            console.error("Delete user error:", error);
+            alert("Failed to delete user: " + (error.response?.data?.message || error.message));
+        }
     };
 
     if (loading) return <div className="p-8 text-center text-gray-500">Loading system data...</div>;
@@ -460,8 +474,12 @@ export default function AdminDashboard() {
                                         </span>
                                     </td>
                                     <td className="p-5 text-right">
-                                        <button className="text-slate-400 hover:text-slate-600 transition">
-                                            <MoreVertical size={18} />
+                                        <button
+                                            onClick={() => handleDeleteUser(user._id)}
+                                            className="text-slate-400 hover:text-red-600 transition p-2 hover:bg-red-50 rounded-full"
+                                            title="Delete User"
+                                        >
+                                            <Trash2 size={18} />
                                         </button>
                                     </td>
                                 </tr>

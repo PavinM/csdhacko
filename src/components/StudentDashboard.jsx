@@ -10,6 +10,7 @@ export default function StudentDashboard() {
     const [loading, setLoading] = useState(true);
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
     const [selectedCompany, setSelectedCompany] = useState(null);
+    const [viewFeedback, setViewFeedback] = useState(null); // Feedback object to view details
 
     // Form State
     const [formData, setFormData] = useState({
@@ -173,15 +174,28 @@ export default function StudentDashboard() {
                                 ) : (
                                     <div className="space-y-4">
                                         {approvedFeedbacks.map(fb => (
-                                            <div key={fb._id} className="bg-slate-50 hover:bg-white p-4 rounded-xl border border-slate-100 transition duration-200">
-                                                <div className="flex justify-between items-start mb-2">
+                                            <div key={fb._id} className="bg-white hover:bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm transition duration-200 group cursor-pointer"
+                                                onClick={() => setViewFeedback(fb)}>
+                                                <div className="flex justify-between items-start mb-3">
                                                     <div>
-                                                        <h4 className="font-bold text-slate-700">{fb.companyName}</h4>
-                                                        <span className="text-xs text-slate-500">{fb.jobRole}</span>
+                                                        <h4 className="font-bold text-[#1A237E] text-lg">{fb.companyName}</h4>
+                                                        <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">{fb.jobRole}</p>
                                                     </div>
-                                                    <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded">APPROVED</span>
+                                                    <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded border border-green-200">APPROVED</span>
                                                 </div>
-                                                <p className="text-sm text-slate-600 line-clamp-2 italic">"{fb.overallExperience}"</p>
+
+                                                <div className="mb-4">
+                                                    <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed">
+                                                        "{fb.overallExperience}"
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex justify-between items-center text-xs text-slate-400 border-t border-slate-100 pt-3">
+                                                    <span className="flex items-center gap-1">
+                                                        <Calendar size={12} /> {fb.driveDate}
+                                                    </span>
+                                                    <span className="font-bold text-indigo-600 group-hover:underline">Read Full Review →</span>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -193,6 +207,79 @@ export default function StudentDashboard() {
 
 
             </div>
+
+            {/* Feedback Details Modal */}
+            {viewFeedback && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col animate-fade-in-up">
+                        <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50">
+                            <div>
+                                <h3 className="font-bold text-xl text-[#1A237E]">{viewFeedback.companyName}</h3>
+                                <p className="text-sm text-slate-500">{viewFeedback.jobRole} • {viewFeedback.driveDate}</p>
+                            </div>
+                            <button
+                                onClick={() => setViewFeedback(null)}
+                                className="text-slate-400 hover:text-slate-600 transition bg-white p-2 rounded-full shadow-sm hover:shadow"
+                            >
+                                <XCircle size={24} />
+                            </button>
+                        </div>
+
+                        <div className="overflow-y-auto p-6 space-y-6">
+                            {/* Experience Section */}
+                            <div>
+                                <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <span className="w-1 h-4 bg-indigo-500 rounded-full"></span>
+                                    Overall Experience
+                                </h4>
+                                <div className="bg-indigo-50/50 p-5 rounded-xl border border-indigo-100 text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">
+                                    {viewFeedback.overallExperience}
+                                </div>
+                            </div>
+
+                            {/* Rounds Section */}
+                            {viewFeedback.rounds && viewFeedback.rounds.length > 0 && (
+                                <div>
+                                    <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                        <span className="w-1 h-4 bg-teal-500 rounded-full"></span>
+                                        Interview Rounds
+                                    </h4>
+                                    <div className="space-y-3">
+                                        {viewFeedback.rounds.map((round, idx) => (
+                                            <div key={idx} className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+                                                <div className="font-bold text-[#1A237E] mb-1">{round.name}</div>
+                                                <p className="text-sm text-slate-600 whitespace-pre-wrap">{round.questions}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Preparation Tips Section */}
+                            {viewFeedback.preparationTips && (
+                                <div>
+                                    <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                        <span className="w-1 h-4 bg-amber-500 rounded-full"></span>
+                                        Preparation Tips
+                                    </h4>
+                                    <div className="bg-amber-50/50 p-5 rounded-xl border border-amber-100 text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">
+                                        {viewFeedback.preparationTips}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end">
+                            <button
+                                onClick={() => setViewFeedback(null)}
+                                className="px-6 py-2 bg-[#1A237E] hover:bg-[#283593] text-white font-bold rounded-lg transition shadow-md"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Submission Form Modal (Overlay) */}
             {showFeedbackModal && (

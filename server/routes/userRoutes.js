@@ -57,4 +57,20 @@ router.post('/', protect, coordinator, asyncHandler(async (req, res) => {
 }));
 
 
+
+// @desc    Delete user
+// @route   DELETE /api/users/:id
+// @access  Private/Admin
+router.delete('/:id', protect, admin, asyncHandler(async (req, res) => {
+    const user = await User.findById(req.params.id);
+
+    if (user) {
+        await User.deleteOne({ _id: user._id });
+        res.json({ message: 'User removed' });
+    } else {
+        res.status(404);
+        throw new Error('User not found');
+    }
+}));
+
 export default router;
