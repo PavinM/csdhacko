@@ -10,7 +10,7 @@ export default function StudentManagement() {
     const [isCreating, setIsCreating] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
 
-    // Updated State with new fields
+    // Updated State with new schema fields
     const [newStudent, setNewStudent] = useState({
         name: '',
         email: '',
@@ -18,7 +18,12 @@ export default function StudentManagement() {
         dob: '',
         rollNo: '',
         section: '',
-        year: '1'
+        year: '1',
+        tenthMark: '',
+        twelfthMark: '',
+        cgpa: '',
+        domain: '',
+        batch: ''
     });
 
     useEffect(() => {
@@ -50,11 +55,19 @@ export default function StudentManagement() {
                 dob: newStudent.dob,
                 rollNo: newStudent.rollNo,
                 section: newStudent.section,
-                year: newStudent.year
+                year: newStudent.year,
+                tenthMark: Number(newStudent.tenthMark),
+                twelfthMark: Number(newStudent.twelfthMark),
+                cgpa: Number(newStudent.cgpa),
+                domain: newStudent.domain,
+                batch: newStudent.batch
             });
 
             setIsCreating(false);
-            setNewStudent({ name: '', email: '', password: '', dob: '', rollNo: '', section: '', year: '1' });
+            setNewStudent({
+                name: '', email: '', password: '', dob: '', rollNo: '', section: '', year: '1',
+                tenthMark: '', twelfthMark: '', cgpa: '', domain: '', batch: ''
+            });
             fetchStudents(); // Refresh list
             alert("Student created successfully!");
         } catch (error) {
@@ -98,18 +111,10 @@ export default function StudentManagement() {
                         <Users size={24} />
                     </div>
                 </div>
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Today</p>
-                        <h3 className="text-3xl font-bold text-[#00897B] mt-1">{students.length > 0 ? Math.floor(students.length * 0.8) : 0}</h3>
-                    </div>
-                    <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600">
-                        <BookOpen size={24} />
-                    </div>
-                </div>
+                {/* Placeholder for other stats */}
             </div>
 
-            {/* Student List */}
+            {/* Student List Table - Aligned with requested Schema */}
             <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
                     <h2 className="font-bold text-lg text-[#1A237E]">Enrolled Students</h2>
@@ -117,7 +122,7 @@ export default function StudentManagement() {
                         <Search size={16} className="text-slate-400 mr-2" />
                         <input
                             type="text"
-                            placeholder="Search by name, email, roll no..."
+                            placeholder="Search by name, roll no..."
                             className="bg-transparent border-none outline-none text-sm w-full font-medium text-slate-700"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -126,58 +131,38 @@ export default function StudentManagement() {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-[#1A237E]/5 text-[#1A237E] uppercase text-xs font-bold tracking-wider">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
                             <tr>
-                                <th className="p-5">Student Name & Roll No</th>
-                                <th className="p-5">Contact</th>
-                                <th className="p-5">Academic Info</th>
-                                <th className="p-5 text-right">Actions</th>
+                                <th className="p-4 border-r border-slate-100">Roll No</th>
+                                <th className="p-4 border-r border-slate-100">Name</th>
+                                <th className="p-4 border-r border-slate-100">10th Mark</th>
+                                <th className="p-4 border-r border-slate-100">12th Mark</th>
+                                <th className="p-4 border-r border-slate-100">Current CGPA</th>
+                                <th className="p-4 border-r border-slate-100">Email</th>
+                                <th className="p-4 border-r border-slate-100">Department</th>
+                                <th className="p-4">Domain</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-50">
+                        <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
                             {filteredStudents.length > 0 ? filteredStudents.map(student => (
                                 <tr key={student.id} className="hover:bg-slate-50 transition-colors">
-                                    <td className="p-5">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-[#1A237E]/10 flex items-center justify-center text-[#1A237E] font-bold border border-[#1A237E]/20">
-                                                {student.name.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <div className="font-bold text-slate-700">{student.name}</div>
-                                                <div className="text-xs text-slate-500 font-mono mt-0.5 flex items-center gap-1">
-                                                    <Hash size={10} /> {student.rollNo || "No Roll No"}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-5 text-sm text-slate-600 font-medium">
-                                        <div className="flex items-center gap-2">
-                                            <Mail size={14} className="text-slate-400" />
-                                            {student.email}
-                                        </div>
-                                        {student.dob && (
-                                            <div className="flex items-center gap-2 mt-1 text-slate-400 text-xs">
-                                                <Calendar size={12} />
-                                                Born: {student.dob}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="p-5 text-sm text-slate-600">
-                                        <div className="flex flex-col gap-1">
-                                            <span className="font-medium">Year {student.year || '-'}</span>
-                                            <span className="text-xs bg-slate-100 px-2 py-0.5 rounded w-fit">Section {student.section || '-'}</span>
-                                        </div>
-                                    </td>
-                                    <td className="p-5 text-right">
-                                        <button className="text-slate-400 hover:text-[#1A237E] transition p-2 hover:bg-slate-100 rounded-full">
-                                            <MoreVertical size={18} />
-                                        </button>
+                                    <td className="p-4 font-mono font-medium border-r border-slate-50">{student.rollNo || "-"}</td>
+                                    <td className="p-4 font-bold text-[#1A237E] border-r border-slate-50">{student.name}</td>
+                                    <td className="p-4 border-r border-slate-50">{student.tenthMark || "-"}%</td>
+                                    <td className="p-4 border-r border-slate-50">{student.twelfthMark || "-"}%</td>
+                                    <td className="p-4 font-bold text-emerald-600 border-r border-slate-50">{student.cgpa || "-"}</td>
+                                    <td className="p-4 text-slate-500 border-r border-slate-50">{student.email}</td>
+                                    <td className="p-4 border-r border-slate-50">{student.department || "-"}</td>
+                                    <td className="p-4">
+                                        <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-medium border border-indigo-100">
+                                            {student.domain || "N/A"}
+                                        </span>
                                     </td>
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan="4" className="p-8 text-center text-slate-500">
+                                    <td colSpan="8" className="p-8 text-center text-slate-500">
                                         No students found matching your search.
                                     </td>
                                 </tr>
@@ -190,7 +175,7 @@ export default function StudentManagement() {
             {/* Creation Modal */}
             {isCreating && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 animate-fade-in relative border-t-4 border-[#8BC34A] max-h-[90vh] overflow-y-auto">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl p-6 animate-fade-in relative border-t-4 border-[#8BC34A] max-h-[90vh] overflow-y-auto">
                         <button
                             onClick={() => setIsCreating(false)}
                             className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition"
@@ -198,94 +183,109 @@ export default function StudentManagement() {
                             <X size={20} />
                         </button>
                         <h2 className="text-xl font-bold text-[#1A237E] mb-1">Add New Student</h2>
-                        <p className="text-xs text-slate-500 mb-6 uppercase tracking-wide">Enter student credentials</p>
+                        <p className="text-xs text-slate-500 mb-6 uppercase tracking-wide">Enter complete student profile</p>
 
-                        <form onSubmit={handleCreateStudent} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Full Name */}
-                            <div className="md:col-span-2">
+                        <form onSubmit={handleCreateStudent} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                            {/* Personal Info */}
+                            <div className="md:col-span-3">
+                                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 mb-3">Personal & Contact</h3>
+                            </div>
+
+                            <div className="md:col-span-1">
                                 <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Full Name</label>
-                                <input
-                                    type="text" required
-                                    className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] focus:ring-1 focus:ring-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
-                                    value={newStudent.name} onChange={e => setNewStudent({ ...newStudent, name: e.target.value })}
-                                    placeholder="e.g. Rahul Kumar"
-                                />
+                                <input type="text" required className="input-field" value={newStudent.name} onChange={e => setNewStudent({ ...newStudent, name: e.target.value })} placeholder="e.g. Rahul Kumar" />
                             </div>
-
-                            {/* Date of Birth & Roll Number */}
-                            <div>
+                            <div className="md:col-span-1">
+                                <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Email Address</label>
+                                <input type="email" required className="input-field" value={newStudent.email} onChange={e => setNewStudent({ ...newStudent, email: e.target.value })} placeholder="student@kongu.edu" />
+                            </div>
+                            <div className="md:col-span-1">
                                 <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Date of Birth</label>
-                                <input
-                                    type="date" required
-                                    className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
-                                    value={newStudent.dob} onChange={e => setNewStudent({ ...newStudent, dob: e.target.value })}
-                                />
+                                <input type="date" required className="input-field" value={newStudent.dob} onChange={e => setNewStudent({ ...newStudent, dob: e.target.value })} />
                             </div>
 
-                            <div>
+                            {/* Academic Info */}
+                            <div className="md:col-span-3 mt-4">
+                                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 mb-3">Academic Details</h3>
+                            </div>
+
+                            <div className="md:col-span-1">
                                 <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Roll Number</label>
-                                <input
-                                    type="text" required
-                                    className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
-                                    value={newStudent.rollNo} onChange={e => setNewStudent({ ...newStudent, rollNo: e.target.value })}
-                                    placeholder="e.g. 22CSE045"
-                                />
+                                <input type="text" required className="input-field" value={newStudent.rollNo} onChange={e => setNewStudent({ ...newStudent, rollNo: e.target.value })} placeholder="e.g. 22CSE045" />
                             </div>
-
-                            {/* Section & Year */}
-                            <div>
+                            <div className="md:col-span-1">
                                 <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Section</label>
-                                <input
-                                    type="text" required
-                                    className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
-                                    value={newStudent.section} onChange={e => setNewStudent({ ...newStudent, section: e.target.value })}
-                                    placeholder="e.g. A"
-                                />
+                                <input type="text" required className="input-field" value={newStudent.section} onChange={e => setNewStudent({ ...newStudent, section: e.target.value })} placeholder="e.g. A" />
                             </div>
-
-                            <div>
+                            <div className="md:col-span-1">
                                 <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Year of Study</label>
-                                <select
-                                    className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
-                                    value={newStudent.year} onChange={e => setNewStudent({ ...newStudent, year: e.target.value })}
-                                >
+                                <select className="input-field" value={newStudent.year} onChange={e => setNewStudent({ ...newStudent, year: e.target.value })}>
                                     <option value="1">1st Year</option>
                                     <option value="2">2nd Year</option>
                                     <option value="3">3rd Year</option>
                                     <option value="4">4th Year</option>
                                 </select>
                             </div>
-
-                            {/* Email & Password */}
+                            <div className="md:col-span-1">
+                                <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Batch</label>
+                                <input type="text" className="input-field" value={newStudent.batch} onChange={e => setNewStudent({ ...newStudent, batch: e.target.value })} placeholder="e.g. 2022-2026" />
+                            </div>
                             <div className="md:col-span-2">
-                                <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Email Address</label>
-                                <input
-                                    type="email" required
-                                    className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] focus:ring-1 focus:ring-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
-                                    value={newStudent.email} onChange={e => setNewStudent({ ...newStudent, email: e.target.value })}
-                                    placeholder="student@kongu.edu"
-                                />
+                                <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Domain</label>
+                                <input type="text" className="input-field" value={newStudent.domain} onChange={e => setNewStudent({ ...newStudent, domain: e.target.value })} placeholder="e.g. Full Stack Development, AI/ML" />
                             </div>
 
-                            <div className="md:col-span-2">
+                            {/* Marks */}
+                            <div className="md:col-span-3 mt-4">
+                                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 mb-3">Performance Metrics</h3>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">10th Mark (%)</label>
+                                <input type="number" step="0.01" className="input-field" value={newStudent.tenthMark} onChange={e => setNewStudent({ ...newStudent, tenthMark: e.target.value })} placeholder="0.00" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">12th Mark (%)</label>
+                                <input type="number" step="0.01" className="input-field" value={newStudent.twelfthMark} onChange={e => setNewStudent({ ...newStudent, twelfthMark: e.target.value })} placeholder="0.00" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Current CGPA</label>
+                                <input type="number" step="0.01" max="10" className="input-field" value={newStudent.cgpa} onChange={e => setNewStudent({ ...newStudent, cgpa: e.target.value })} placeholder="0.00" />
+                            </div>
+
+                            {/* Security */}
+                            <div className="md:col-span-3 mt-4">
                                 <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Password</label>
-                                <input
-                                    type="password" required
-                                    className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] focus:ring-1 focus:ring-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
-                                    value={newStudent.password} onChange={e => setNewStudent({ ...newStudent, password: e.target.value })}
-                                    placeholder="••••••••"
-                                />
+                                <input type="password" required className="input-field" value={newStudent.password} onChange={e => setNewStudent({ ...newStudent, password: e.target.value })} placeholder="••••••••" />
                             </div>
 
-                            <div className="md:col-span-2 mt-2">
+                            <div className="md:col-span-3 mt-6">
                                 <button type="submit" className="w-full bg-[#1A237E] hover:bg-[#283593] text-white font-bold py-3.5 rounded-lg shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
-                                    <UserPlus size={18} /> Create Account
+                                    <UserPlus size={18} /> Create Student Profile
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
+
+            <style>{`
+                .input-field {
+                    width: 100%;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 0.5rem;
+                    padding: 0.75rem;
+                    outline: none;
+                    transition: all 0.2s;
+                    background-color: #f8fafc;
+                }
+                .input-field:focus {
+                    border-color: #1A237E;
+                    background-color: white;
+                    box-shadow: 0 0 0 1px #1A237E;
+                }
+            `}</style>
         </div>
     );
 }

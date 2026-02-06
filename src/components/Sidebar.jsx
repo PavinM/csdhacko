@@ -32,6 +32,12 @@ export default function Sidebar() {
             icon: LayoutDashboard
         },
         {
+            role: 'student',
+            label: 'View Feedback',
+            path: '/student/view-feedback',
+            icon: FileText
+        },
+        {
             role: 'coordinator',
             label: 'Dashboard',
             path: '/coordinator',
