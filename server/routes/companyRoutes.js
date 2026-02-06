@@ -9,15 +9,15 @@ const router = express.Router();
 // @route   POST /api/companies
 // @access  Private/Admin
 router.post('/', protect, admin, asyncHandler(async (req, res) => {
-    const { name, visitDate, roles, eligibility, salaryPackage, department } = req.body;
+    const { name, visitDate, domain, roles, eligibility, salaryPackage } = req.body;
 
     const company = await Company.create({
         name,
         visitDate,
+        domain,
         roles,
         eligibility,
-        salaryPackage,
-        department: department || 'Placement Cell'
+        salaryPackage
     });
 
     if (company) {

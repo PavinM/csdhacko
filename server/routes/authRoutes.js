@@ -208,7 +208,7 @@ router.post('/google', asyncHandler(async (req, res) => {
 }));
 
 
-// @desc    Bulk register students
+// @desc    Bulk register/update students
 // @route   POST /api/auth/bulk-register
 // @access  Private/Admin
 router.post('/bulk-register', protect, admin, asyncHandler(async (req, res) => {
@@ -219,65 +219,120 @@ router.post('/bulk-register', protect, admin, asyncHandler(async (req, res) => {
         throw new Error('Invalid data format. Expected array of students.');
     }
 
-    let createdCount = 0;
-    let skippedCount = 0;
-    const usersToInsert = [];
+    const operations = [];
 
-    // optimize: fetch existing emails
-    const existingUsers = await User.find({}, 'email');
-    const existingEmails = new Set(existingUsers.map(u => u.email));
+    // Pre-generate hashes for NEW users (expensive, so do it inside loop if needed, but bulkWrite doesn't support async value generation easily inside the ops array if we want parallelism, but map is sync. 
+    // We'll iterate and build ops. For passwords, if we need to set them for new users, we'll hash.
 
-    // Pre-generate salt for performance (or generate per user if bcrypt requires, usually salt is part of hash, so genSalt(10) per user is safer but slower. 
-    // For bulk default passwords, we can reuse salt? No, security risk. 
-    // We will generate hash for each.
+    // Note: bcrypt is async. We'll use a for...of loop.
 
-    for (const student of students) {
-        // Map keys loosely
-        const name = student['Name'] || student['name'] || student['Student Name'];
-        const email = student['Email'] || student['email'];
-        // Default password logic: RollNo -> DOB -> 'password123'
-        const rollNo = student['RollNo'] || student['rollNo'] || student['Register Number'] || '';
-        const dob = student['DOB'] || student['dob'] || '';
-        const department = student['Department'] || student['department'] || 'General';
+    let processedCount = 0;
 
-        if (!email || !name) continue; // Skip invalid
+    for (const rawStudent of students) {
+        // Normalize keys for robustness (Handle "Email ", "EMAIL", "student name" etc.)
+        const student = {};
+        Object.keys(rawStudent).forEach(key => {
+            student[key.toLowerCase().trim()] = rawStudent[key];
+        });
 
-        if (existingEmails.has(email)) {
-            skippedCount++;
-            continue;
-        }
+        // Map keys (checking lowercase variants)
+        const name = student['name'] || student['student name'];
+        const email = student['email'];
 
-        // Create user object
-        // Hash password manually as insertMany bypasses pre-save hooks
+        if (!email || !name) continue;
+
+        // Fields to update/insert
+        const rollNo = student['rollno'] || student['roll no'] || student['register number'] || student['roll number'] || '';
+        const dob = student['dob'] || '';
+        const department = student['department'] || 'General';
+        const section = student['section'];
+        const year = student['year'] || student['batch'] || student['batch / year'];
+        const batch = student['year'] || student['batch'] || student['batch / year']; // Redundant bu safe
+        const domain = student['domain'] || student['area of interest'];
+
+        // Academic Fields
+        const tenthMark = student['10th percentage'] || student['10th %'] || student['10th'] || student['tenthmark'];
+        const twelfthMark = student['12th percentage'] || student['12th %'] || student['12th'] || student['twelfthmark'];
+        const cgpa = student['current cgpa'] || student['cgpa'];
+
+        // Determine password for NEW users only
         const plainPassword = rollNo ? rollNo.toString() : (dob ? dob.toString() : 'password123');
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(plainPassword, salt);
 
-        usersToInsert.push({
-            name,
-            email,
-            password: hashedPassword,
-            role: 'student',
-            department,
-            rollNo,
-            dob,
-            section: student['Section'] || student['section'],
-            year: student['Year'] || student['year']
+        operations.push({
+            updateOne: {
+                filter: { email: email },
+                update: {
+                    $set: {
+                        name,
+                        department,
+                        rollNo,
+                        dob,
+                        section,
+                        year,
+                        batch,
+                        domain,
+                        tenthMark,
+                        twelfthMark,
+                        cgpa
+                    },
+                    $setOnInsert: {
+                        password: hashedPassword,
+                        role: 'student',
+                        createdAt: new Date()
+                    }
+                },
+                upsert: true
+            }
         });
-
-        // Add to existingEmails set to prevent duplicates within the upload file itself
-        existingEmails.add(email);
+        processedCount++;
     }
 
-    if (usersToInsert.length > 0) {
-        await User.insertMany(usersToInsert);
-        createdCount = usersToInsert.length;
+    if (operations.length > 0) {
+        await User.bulkWrite(operations);
     }
 
-    res.status(201).json({
-        message: 'Bulk registration processed',
-        count: createdCount,
-        skipped: skippedCount
+    res.status(200).json({
+        message: 'Bulk processing complete',
+        count: processedCount
+    });
+}));
+
+// @desc    Update student profile (One-time or Admin override)
+// @route   PUT /api/auth/profile
+// @access  Private
+router.post('/profile', protect, asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    // Check if already completed (and not admin)
+    if (user.profileCompleted && user.role !== 'admin') {
+        res.status(403);
+        throw new Error('Profile already completed. Contact admin for changes.');
+    }
+
+    const { tenthMark, twelfthMark, cgpa, domain } = req.body;
+
+    user.tenthMark = tenthMark || user.tenthMark;
+    user.twelfthMark = twelfthMark || user.twelfthMark;
+    user.cgpa = cgpa || user.cgpa;
+    user.domain = domain || user.domain;
+
+    user.profileCompleted = true;
+
+    await user.save();
+
+    res.json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        profileCompleted: user.profileCompleted,
+        token: generateToken(user._id)
     });
 }));
 export default router;

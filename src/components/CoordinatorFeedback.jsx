@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/api"; // MERN API
 import * as XLSX from 'xlsx';
-import { Check, X, ChevronDown, ChevronUp, Briefcase, Calendar, Star, Upload } from "lucide-react";
+import { Check, X, ChevronDown, ChevronUp, Briefcase, Calendar, Star, Upload, Eye } from "lucide-react";
 
 export default function CoordinatorFeedback() {
     const { currentUser } = useAuth();
@@ -270,21 +270,30 @@ export default function CoordinatorFeedback() {
                                 </div>
 
                                 <div className="flex gap-2 relative">
-                                    {company.status !== 'completed' && (
+                                    {company.status !== 'completed' ? (
+                                        <>
+                                            <button
+                                                onClick={() => handleMarkCompleted(company._id)}
+                                                className="flex-1 bg-white border border-green-600 text-green-600 py-2 rounded-lg text-xs font-bold hover:bg-green-50 transition"
+                                            >
+                                                Mark Completed
+                                            </button>
+
+                                            <button
+                                                onClick={() => setUploadingFor(company._id)}
+                                                className="flex-1 bg-[#1A237E] text-white py-2 rounded-lg text-xs font-bold hover:bg-[#283593] transition flex items-center justify-center gap-2"
+                                            >
+                                                <Upload size={14} /> Upload list
+                                            </button>
+                                        </>
+                                    ) : (
                                         <button
-                                            onClick={() => handleMarkCompleted(company._id)}
-                                            className="flex-1 bg-white border border-green-600 text-green-600 py-2 rounded-lg text-xs font-bold hover:bg-green-50 transition"
+                                            onClick={() => setViewingListFor(company)}
+                                            className="flex-1 bg-indigo-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition flex items-center justify-center gap-2"
                                         >
-                                            Mark Completed
+                                            <Eye size={14} /> View List
                                         </button>
                                     )}
-
-                                    <button
-                                        onClick={() => setUploadingFor(company._id)}
-                                        className="flex-1 bg-[#1A237E] text-white py-2 rounded-lg text-xs font-bold hover:bg-[#283593] transition flex items-center justify-center gap-2"
-                                    >
-                                        <Upload size={14} /> Upload list
-                                    </button>
 
                                     {/* Hidden File Input triggered by state */}
                                     {uploadingFor === company._id && (

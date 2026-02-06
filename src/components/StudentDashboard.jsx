@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/api"; // MERN API
-import { XCircle, FileText, Calendar, Plus, ChevronRight, BarChart2, BookOpen, ExternalLink, CheckCircle, Briefcase, Sparkles, Share2 } from "lucide-react";
+import { XCircle, FileText, Calendar, Plus, ChevronRight, BarChart2, BookOpen, ExternalLink, CheckCircle, Briefcase, Sparkles, Share2, UserCheck } from "lucide-react";
 import FeedbackWizard from "./FeedbackWizard";
 
 export default function StudentDashboard() {
@@ -50,12 +50,22 @@ export default function StudentDashboard() {
 
     return (
         <div className="space-y-6 pb-10">
+
             {/* 1. Profile Banner */}
             <div className="bg-gradient-to-r from-indigo-900 to-sky-500 rounded-xl p-8 text-white shadow-lg flex justify-between items-center relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
                 <div className="relative z-10">
                     <h1 className="text-4xl font-extrabold uppercase tracking-wide drop-shadow-sm">{currentUser?.name || "Student Name"}</h1>
-                    <p className="text-blue-100 text-lg mt-2 font-light">{currentUser?.department || "Department Engineering"} Student</p>
+                    <div className="flex items-center gap-3 text-blue-100 mt-2">
+                        <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-bold backdrop-blur-sm border border-white/10">
+                            {currentUser?.department || "Dept"}
+                        </span>
+                        {currentUser?.domain && (
+                            <span className="bg-emerald-500/20 px-3 py-1 rounded-full text-sm font-bold backdrop-blur-sm border border-emerald-400/30 text-emerald-100 flex items-center gap-1">
+                                <Sparkles size={12} /> {currentUser.domain}
+                            </span>
+                        )}
+                    </div>
                 </div>
                 <div className="relative z-10 hidden md:block">
                     <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-white border-4 border-white/30 backdrop-blur-sm">
@@ -64,6 +74,35 @@ export default function StudentDashboard() {
                         </svg>
                     </div>
                 </div>
+            </div>
+
+            {/* 2. Academic Details - Read Only */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <BookOpen size={20} className="text-indigo-600" />
+                    Academic Profile
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+                        <p className="text-xs font-bold text-blue-600 uppercase mb-1">10th %</p>
+                        <p className="text-2xl font-extrabold text-blue-900">{currentUser?.tenthMark || 'N/A'}</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
+                        <p className="text-xs font-bold text-purple-600 uppercase mb-1">12th %</p>
+                        <p className="text-2xl font-extrabold text-purple-900">{currentUser?.twelfthMark || 'N/A'}</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-4 rounded-lg border border-emerald-200">
+                        <p className="text-xs font-bold text-emerald-600 uppercase mb-1">Current CGPA</p>
+                        <p className="text-2xl font-extrabold text-emerald-900">{currentUser?.cgpa || 'N/A'}</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-4 rounded-lg border border-amber-200">
+                        <p className="text-xs font-bold text-amber-600 uppercase mb-1">Domain</p>
+                        <p className="text-lg font-extrabold text-amber-900">{currentUser?.domain || 'Not Assigned'}</p>
+                    </div>
+                </div>
+                <p className="text-xs text-slate-400 mt-4 italic">
+                    <span className="font-bold">Note:</span> These details are managed by Admin. Contact your placement coordinator for any updates.
+                </p>
             </div>
 
             <div className="grid grid-cols-1 gap-6">

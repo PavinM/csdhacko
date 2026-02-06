@@ -13,6 +13,12 @@ const userSchema = mongoose.Schema({
     dob: { type: String }, // Stored as string YYYY-MM-DD for simplicity
     section: { type: String },
     year: { type: String }, // '1', '2', '3', '4'
+    batch: { type: String }, // e.g. "2022-2026"
+    domain: { type: String }, // e.g. "Full Stack", "AI/ML"
+    tenthMark: { type: Number },
+    twelfthMark: { type: Number },
+    cgpa: { type: Number },
+    profileCompleted: { type: Boolean, default: false },
 
     createdAt: { type: Date, default: Date.now }
 }, {

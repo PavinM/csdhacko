@@ -26,10 +26,15 @@ export default function AdminDashboard() {
     const [newCompany, setNewCompany] = useState({
         name: '',
         visitDate: '',
-        roles: '',
-        eligibility: '',
-        package: '',
-        department: '' // Admin must specify department
+        domain: '',
+        roles: [''],
+        salaryPackage: { min: '', max: '' },
+        eligibility: {
+            cgpaMin: '',
+            cgpaMax: '',
+            tenthMin: '',
+            twelfthMin: ''
+        }
     });
 
     useEffect(() => {
@@ -89,7 +94,14 @@ export default function AdminDashboard() {
                 status: 'scheduled'
             });
             setIsAddingCompany(false);
-            setNewCompany({ name: '', visitDate: '', roles: '', eligibility: '', package: '', department: '' });
+            setNewCompany({
+                name: '',
+                visitDate: '',
+                domain: '',
+                roles: [''],
+                salaryPackage: { min: '', max: '' },
+                eligibility: { cgpaMin: '', cgpaMax: '', tenthMin: '', twelfthMin: '' }
+            });
             fetchAllData();
             alert("Company drive added successfully!");
         } catch (error) {
@@ -240,9 +252,10 @@ export default function AdminDashboard() {
 
             {/* Add Company Modal */}
             {isAddingCompany && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-0 animate-fade-in relative overflow-hidden">
-                        <div className="bg-[#1A237E] p-6 text-white">
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col p-0 animate-fade-in relative">
+                        {/* Header - Fixed */}
+                        <div className="bg-[#1A237E] p-6 text-white shrink-0 relative">
                             <button
                                 onClick={() => setIsAddingCompany(false)}
                                 className="absolute top-4 right-4 text-white/50 hover:text-white transition"
@@ -255,68 +268,152 @@ export default function AdminDashboard() {
                             <p className="text-blue-200 text-sm mt-1">Schedule a new placement drive</p>
                         </div>
 
-                        <form onSubmit={handleAddCompany} className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Company Name</label>
-                                <input
-                                    type="text" required
-                                    className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
-                                    value={newCompany.name} onChange={e => setNewCompany({ ...newCompany, name: e.target.value })}
-                                    placeholder="e.g. Google"
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
+                        {/* Scrollable Content */}
+                        <div className="flex-1 overflow-y-auto p-6">
+                            <form id="add-company-form" onSubmit={handleAddCompany} className="space-y-5">
                                 <div>
-                                    <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Department</label>
+                                    <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Company Name</label>
                                     <input
                                         type="text" required
                                         className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
-                                        value={newCompany.department} onChange={e => setNewCompany({ ...newCompany, department: e.target.value })}
-                                        placeholder="e.g. CSE"
+                                        value={newCompany.name} onChange={e => setNewCompany({ ...newCompany, name: e.target.value })}
+                                        placeholder="e.g. Google"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Visit Date</label>
-                                    <input
-                                        type="date" required
-                                        className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
-                                        value={newCompany.visitDate} onChange={e => setNewCompany({ ...newCompany, visitDate: e.target.value })}
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Domain</label>
+                                        <select
+                                            required
+                                            className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
+                                            value={newCompany.domain} onChange={e => setNewCompany({ ...newCompany, domain: e.target.value })}
+                                        >
+                                            <option value="">Select Domain</option>
+                                            <option value="Hardware">Hardware</option>
+                                            <option value="Software">Software</option>
+                                            <option value="Both">Both</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Visit Date</label>
+                                        <input
+                                            type="date" required
+                                            className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
+                                            value={newCompany.visitDate} onChange={e => setNewCompany({ ...newCompany, visitDate: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Package (LPA)</label>
-                                    <input
-                                        type="text"
-                                        className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
-                                        value={newCompany.package} onChange={e => setNewCompany({ ...newCompany, package: e.target.value })}
-                                        placeholder="e.g. 12 LPA"
-                                    />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <input
+                                            type="number" step="0.1" min="0"
+                                            className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
+                                            value={newCompany.salaryPackage.min} onChange={e => setNewCompany({ ...newCompany, salaryPackage: { ...newCompany.salaryPackage, min: e.target.value } })}
+                                            placeholder="Min (e.g. 10)"
+                                        />
+                                        <input
+                                            type="number" step="0.1" min="0"
+                                            className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
+                                            value={newCompany.salaryPackage.max} onChange={e => setNewCompany({ ...newCompany, salaryPackage: { ...newCompany.salaryPackage, max: e.target.value } })}
+                                            placeholder="Max (e.g. 15)"
+                                        />
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Roles Offered</label>
-                                    <input
-                                        type="text" required
-                                        className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
-                                        value={newCompany.roles} onChange={e => setNewCompany({ ...newCompany, roles: e.target.value })}
-                                        placeholder="e.g. SDE"
-                                    />
+                                    <div className="space-y-2">
+                                        {newCompany.roles.map((role, index) => (
+                                            <div key={index} className="flex gap-2">
+                                                <input
+                                                    type="text" required
+                                                    className="flex-1 border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
+                                                    value={role}
+                                                    onChange={e => {
+                                                        const updatedRoles = [...newCompany.roles];
+                                                        updatedRoles[index] = e.target.value;
+                                                        setNewCompany({ ...newCompany, roles: updatedRoles });
+                                                    }}
+                                                    placeholder="e.g. SDE"
+                                                />
+                                                {newCompany.roles.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const updatedRoles = newCompany.roles.filter((_, i) => i !== index);
+                                                            setNewCompany({ ...newCompany, roles: updatedRoles });
+                                                        }}
+                                                        className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition"
+                                                    >
+                                                        <X size={18} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            onClick={() => setNewCompany({ ...newCompany, roles: [...newCompany.roles, ''] })}
+                                            className="text-sm text-indigo-600 font-bold hover:text-indigo-800 flex items-center gap-1"
+                                        >
+                                            <Plus size={16} /> Add Role
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Eligibility Criteria</label>
-                                <textarea
-                                    className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white resize-none h-24"
-                                    value={newCompany.eligibility} onChange={e => setNewCompany({ ...newCompany, eligibility: e.target.value })}
-                                    placeholder="CGPA > 8.0..."
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Eligibility Criteria</label>
+                                    <div className="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-600 mb-1">CGPA Range</label>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <input
+                                                    type="number" step="0.01" min="0" max="10"
+                                                    className="w-full border border-slate-200 rounded-lg p-2 focus:border-[#1A237E] outline-none transition bg-white text-sm"
+                                                    value={newCompany.eligibility.cgpaMin}
+                                                    onChange={e => setNewCompany({ ...newCompany, eligibility: { ...newCompany.eligibility, cgpaMin: e.target.value } })}
+                                                    placeholder="Min (e.g. 7.0)"
+                                                />
+                                                <input
+                                                    type="number" step="0.01" min="0" max="10"
+                                                    className="w-full border border-slate-200 rounded-lg p-2 focus:border-[#1A237E] outline-none transition bg-white text-sm"
+                                                    value={newCompany.eligibility.cgpaMax}
+                                                    onChange={e => setNewCompany({ ...newCompany, eligibility: { ...newCompany.eligibility, cgpaMax: e.target.value } })}
+                                                    placeholder="Max (e.g. 10.0)"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-600 mb-1">10th % (Min)</label>
+                                                <input
+                                                    type="number" step="0.01" min="0" max="100"
+                                                    className="w-full border border-slate-200 rounded-lg p-2 focus:border-[#1A237E] outline-none transition bg-white text-sm"
+                                                    value={newCompany.eligibility.tenthMin}
+                                                    onChange={e => setNewCompany({ ...newCompany, eligibility: { ...newCompany.eligibility, tenthMin: e.target.value } })}
+                                                    placeholder="e.g. 75"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-600 mb-1">12th % (Min)</label>
+                                                <input
+                                                    type="number" step="0.01" min="0" max="100"
+                                                    className="w-full border border-slate-200 rounded-lg p-2 focus:border-[#1A237E] outline-none transition bg-white text-sm"
+                                                    value={newCompany.eligibility.twelfthMin}
+                                                    onChange={e => setNewCompany({ ...newCompany, eligibility: { ...newCompany.eligibility, twelfthMin: e.target.value } })}
+                                                    placeholder="e.g. 75"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
 
-                            <button type="submit" className="w-full bg-[#1A237E] hover:bg-[#283593] text-white font-bold py-3.5 rounded-lg mt-2 shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
+                        {/* Footer - Fixed */}
+                        <div className="p-6 border-t border-slate-100 bg-slate-50 rounded-b-xl shrink-0">
+                            <button type="submit" form="add-company-form" className="w-full bg-[#1A237E] hover:bg-[#283593] text-white font-bold py-3.5 rounded-lg shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
                                 <Plus size={18} /> Schedule Drive
                             </button>
-                        </form>
+                        </div>
                     </div>
                 </div>
             )}
@@ -327,7 +424,7 @@ export default function AdminDashboard() {
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-fade-in relative">
                         <button onClick={() => setIsBulkUploading(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><X size={20} /></button>
                         <h2 className="text-xl font-bold text-emerald-800 mb-2 flex items-center gap-2"><Upload size={24} /> Bulk Student Upload</h2>
-                        <p className="text-sm text-slate-500 mb-6">Upload an Excel file to register multiple students. The file must have headers matching student fields (Name, Email, RollNo, Department, etc.).</p>
+                        <p className="text-sm text-slate-500 mb-6">Upload an Excel file to register or update students. Supported columns: <b>Name, Email, RollNo, Department, 10th %, 12th %, Current CGPA</b>.</p>
 
                         <div className="border-2 border-dashed border-emerald-100 bg-emerald-50 rounded-xl p-8 text-center hover:bg-emerald-100 transition cursor-pointer relative">
                             <input type="file" accept=".xlsx, .xls" onChange={handleBulkUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />

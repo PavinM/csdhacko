@@ -3,13 +3,31 @@ import mongoose from 'mongoose';
 const companySchema = mongoose.Schema({
     name: { type: String, required: true },
     visitDate: { type: String, required: true },
-    roles: { type: String, required: true },
-    eligibility: { type: String },
-    salaryPackage: { type: String }, // e.g. "12 LPA"
-    department: { type: String, required: true }, // Which department is hosting/coordinating
-    eligibleStudents: { type: [String], default: [] }, // Array of student emails
-    status: { type: String, default: 'scheduled', enum: ['scheduled', 'completed', 'cancelled'] },
-
+    domain: {
+        type: String,
+        required: true,
+        enum: ['Hardware', 'Software', 'Both']
+    },
+    roles: {
+        type: [String],
+        default: []
+    },
+    salaryPackage: {
+        min: { type: Number },
+        max: { type: Number }
+    },
+    eligibility: {
+        cgpaMin: { type: Number },
+        cgpaMax: { type: Number },
+        tenthMin: { type: Number },
+        twelfthMin: { type: Number }
+    },
+    eligibleStudents: { type: [String], default: [] },
+    status: {
+        type: String,
+        default: 'scheduled',
+        enum: ['scheduled', 'completed', 'cancelled']
+    },
     createdAt: { type: Date, default: Date.now }
 }, {
     timestamps: true
