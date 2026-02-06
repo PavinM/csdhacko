@@ -112,8 +112,7 @@ router.post('/google', asyncHandler(async (req, res) => {
     try {
         ticket = await client.verifyIdToken({
             idToken: token,
-            audience: process.env.VITE_GOOGLE_CLIENT_ID // Ideally this should be in SERVER .env too, but for now we can rely on frontend sending it.
-            // BETTER: Add VITE_GOOGLE_CLIENT_ID to server .env as GOOGLE_CLIENT_ID
+            audience: process.env.GOOGLE_CLIENT_ID
         });
     } catch (error) {
         res.status(401);

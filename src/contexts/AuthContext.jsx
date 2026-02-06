@@ -53,7 +53,7 @@ export function AuthProvider({ children }) {
             return true;
         } catch (error) {
             console.error("Login Error:", error.response?.data?.message || error.message);
-            alert("DEBUG: Login API Failed: " + (error.response?.data?.message || error.message));
+            // alert("DEBUG: Login API Failed: " + (error.response?.data?.message || error.message));
             throw new Error(error.response?.data?.message || "Invalid email or password");
         } finally {
             setLoading(false);

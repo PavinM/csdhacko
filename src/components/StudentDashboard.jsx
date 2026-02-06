@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/api"; // MERN API
-import { Plus, ChevronRight, BarChart2, BookOpen, ExternalLink, XCircle, FileText, CheckCircle, Calendar, Briefcase, Sparkles, Share2 } from "lucide-react";
+import { XCircle, FileText, Calendar, Plus, ChevronRight, BarChart2, BookOpen, ExternalLink, CheckCircle, Briefcase, Sparkles, Share2 } from "lucide-react";
 import FeedbackWizard from "./FeedbackWizard";
 
 export default function StudentDashboard() {
@@ -10,45 +10,9 @@ export default function StudentDashboard() {
     const [approvedFeedbacks, setApprovedFeedbacks] = useState([]); // All approved feedbacks (Global View)
     const [loading, setLoading] = useState(true);
 
-    // Modal State
-    const [activeModal, setActiveModal] = useState(null); // 'feedback' | 'resource' | null
-    const [selectedCompany, setSelectedCompany] = useState("");
-    const [tempCompanyDetails, setTempCompanyDetails] = useState({ name: '', package: '' });
-
-    // Mock Data from HTML
-    const AVAILABLE_COMPANIES = [
-        { name: "Accenture", package: "₹ 9.2 LPA", initial: "A" },
-        { name: "TCS", package: "₹ 7.5 LPA", initial: "T" },
-        { name: "Infosys", package: "₹ 8.0 LPA", initial: "I" },
-        { name: "Wipro", package: "₹ 7.8 LPA", initial: "W" },
-        { name: "Cognizant", package: "₹ 8.5 LPA", initial: "C" },
-        { name: "HCL Technologies", package: "₹ 7.2 LPA", initial: "H" }
-    ];
-
-    const handleCompanyClick = (companyName = "") => {
-        setSelectedCompany(companyName);
-        setTempCompanyDetails({ name: '', package: '' }); // Reset temp details for existing companies
-        setActiveModal('feedback');
-    };
-
-    const handleOpenOffCampus = () => {
-        setTempCompanyDetails({ name: '', package: '' });
-        setActiveModal('off-campus-entry');
-    };
-
-    const handleOffCampusSubmit = (e) => {
-        e.preventDefault();
-        if (tempCompanyDetails.name && tempCompanyDetails.package) {
-            setSelectedCompany(tempCompanyDetails.name);
-            setActiveModal('feedback');
-        }
-    };
-
-    const handleOpenResource = (e, companyName = "") => {
-        e.stopPropagation();
-        setSelectedCompany(companyName);
-        setActiveModal('resource');
-    };
+    // Modal State (Keep Local Wizard Logic)
+    const [activeModal, setActiveModal] = useState(null); // 'feedback' | null
+    const [selectedCompany, setSelectedCompany] = useState(null);
 
     useEffect(() => {
         if (currentUser) {
@@ -71,197 +35,125 @@ export default function StudentDashboard() {
             const feedbackRes = await api.get('/feedback?status=approved');
             setApprovedFeedbacks(feedbackRes.data);
 
-            // Also synchronize feedbacks state for the UI counters if needed
-            // Ideally we should use one source of truth, but for now let's keep existing logic working
-            // The "feedbacks" state was used in the local version but "approvedFeedbacks" in remote
-            // We'll map "feedbacks" to "approvedFeedbacks" for the stats
         } catch (error) {
             console.error("Error fetching student dashboard data:", error);
         }
         setLoading(false);
     };
 
-    // Helper for stats compatibility
-    const feedbacks = approvedFeedbacks;
+    const handleGiveFeedback = (company) => {
+        setSelectedCompany(company.name); // Wizard expects string name? Or object? 
+        // Local Wizard prop: initialCompany={selectedCompany} 
+        // In local logic: setSelectedCompany(companyName) (String).
+        // So passing company.name is correct.
+        setActiveModal('feedback');
+    };
 
     if (loading) return <div className="flex justify-center py-20 text-gray-400">Loading your dashboard...</div>;
 
     return (
         <div className="space-y-6 pb-10">
-            {/* 1. Dashboard Header */}
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold text-slate-900">Help Your Juniors Grow!</h1>
-                <p className="text-orange-500 font-medium mt-1">Pending Feedbacks</p>
-            </div>
-
-            {/* 2. Profile Section */}
-            <div className="bg-gradient-to-br from-[#1A237E] to-[#283593] rounded-2xl p-8 text-white shadow-xl flex justify-between items-center relative overflow-hidden mb-10">
-                {/* Background Pattern */}
-                <div className="absolute -top-1/2 -right-[20%] w-[400px] h-[400px] bg-[radial-gradient(circle,rgba(139,195,74,0.1)_0%,transparent_70%)] rounded-full pointer-events-none"></div>
+            {/* 1. Profile Banner (From Remote) */}
+            <div className="bg-gradient-to-r from-indigo-900 to-sky-500 rounded-xl p-8 text-white shadow-lg flex justify-between items-center relative overflow-hidden">
+                {/* Background Pattern for Banner */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
                 <div className="relative z-10">
-                    <h2 className="text-4xl font-bold mb-2">{currentUser?.name || "Student Name"}</h2>
-                    <p className="text-white/80 text-lg italic">{currentUser?.department || "Department"} Student</p>
+                    <h1 className="text-4xl font-extrabold uppercase tracking-wide drop-shadow-sm">{currentUser?.name || "Student Name"}</h1>
+                    <p className="text-blue-100 text-lg mt-2 font-light">{currentUser?.department || "Department Engineering"} Student</p>
                 </div>
 
-                <div className="relative z-10 hidden md:flex w-[100px] h-[100px] rounded-full bg-white items-center justify-center text-4xl shadow-lg border-4 border-white/30">
-                    👤
+                <div className="relative z-10 hidden md:block">
+                    <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-white border-4 border-white/30 backdrop-blur-sm">
+                        <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                    </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* 2. Left Column: Help Juniors / Pending Feedbacks */}
-                {/* 3. Main Grid Content: Companies List */}
-                <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-bold text-slate-800">Companies Open for Feedback</h3>
-                        <button
-                            onClick={handleOpenOffCampus}
-                            className="bg-sky-500 hover:bg-sky-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-md hover:shadow-lg transform active:scale-95 ml-auto"
-                        >
-                            <Plus size={18} /> Add Off-Campus
-                        </button>
-                    </div>
-
-                    {/* Companies List - Vertical Stack */}
-                    <div className="flex flex-col gap-4">
-                        {AVAILABLE_COMPANIES.map((company, index) => {
-                            // Check if feedback already exists for this company
-                            const submittedFeedback = feedbacks.find(f => f.companyName.toLowerCase() === company.name.toLowerCase());
-                            const status = submittedFeedback ? submittedFeedback.status : 'Pending Feedback';
-
-                            const statusText = submittedFeedback ? (status === 'approved' ? 'Approved' : status === 'pending' ? 'Pending' : 'Rejected') : "Pending Feedback";
-                            const statusColor = submittedFeedback ? (status === 'approved' ? 'text-green-700 bg-green-100' : status === 'pending' ? 'text-amber-700 bg-amber-100' : 'text-red-500 bg-red-50') : "text-orange-500 bg-orange-50";
-
-                            return (
-                                <div
-                                    key={index}
-                                    onClick={() => handleCompanyClick(company.name)}
-                                    className="bg-slate-50 rounded-xl p-4 hover:bg-white hover:shadow-md border border-transparent hover:border-sky-200 transition-all duration-300 cursor-pointer flex items-center justify-between group"
-                                >
-                                    {/* Left Side: Name & Package */}
-                                    <div className="flex flex-col gap-1 min-w-0">
-                                        <h3 className="text-lg font-bold text-slate-800 group-hover:text-primary-blue transition-colors truncate">
-                                            {company.name}
-                                        </h3>
-                                        <p className="text-sm font-semibold text-slate-400">
-                                            {company.package}
-                                        </p>
-                                    </div>
-
-                                    {/* Right Side: Arrow Button */}
-                                    <div className="flex items-center gap-3 shrink-0">
-
-                                        <span className={`text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-full ${statusColor} whitespace-nowrap hidden sm:inline-block`}>
-                                            {statusText}
-                                        </span>
-
-                                        <div className="w-10 h-10 rounded-full bg-white text-primary-blue shadow-sm border border-slate-100 flex items-center justify-center group-hover:bg-primary-blue group-hover:text-white transition-all duration-300">
-                                            <ChevronRight size={20} strokeWidth={3} className="ml-0.5" />
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* 4. Right Sidebar (Stats) */}
+            <div className="grid grid-cols-1 gap-6">
+                {/* 2. Main Content: Help Juniors / Pending Feedbacks (From Remote) */}
                 <div className="space-y-6">
-                    {/* Stats Widget Panel */}
-                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-                        <h3 className="text-xl font-bold text-slate-800 mb-6">My Activity</h3>
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[400px]">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-800">Help Your Juniors Grow!</h2>
+                                <p className="text-sm text-slate-500 font-medium">Pending feedback reviews</p>
+                            </div>
+
+                        </div>
+
                         <div className="space-y-4">
-                            {/* Total - Row Style */}
-                            <div className="flex items-center gap-4 p-3 rounded-xl bg-sky-50/50 border border-sky-100">
-                                <div className="p-3 bg-sky-100 text-sky-600 rounded-lg">
-                                    <BarChart2 size={24} />
-                                </div>
-                                <div>
-                                    <h4 className="text-2xl font-bold text-slate-800">{AVAILABLE_COMPANIES.length}</h4>
-                                    <p className="text-xs font-semibold text-slate-500 uppercase">Total Companies</p>
-                                </div>
+                            {/* 1. Eligible Drives (Give Feedback) */}
+                            <div>
+                                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">Your Eligible Drives</h3>
+                                {availableCompanies.length === 0 ? (
+                                    <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                        <div className="inline-flex p-3 bg-white rounded-full shadow-sm mb-3 text-slate-300">
+                                            <FileText size={24} />
+                                        </div>
+                                        <p className="text-slate-500 font-medium">No pending feedbacks.</p>
+                                        <p className="text-xs text-slate-400">You can only give feedback for drives you attended.</p>
+                                    </div>
+                                ) : (
+                                    availableCompanies.map(company => (
+                                        <div key={company._id} className="bg-white rounded-xl p-5 border border-indigo-100 shadow-sm hover:shadow-md transition-all mb-4 relative overflow-hidden group">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="font-bold text-lg text-indigo-900">{company.name}</h3>
+                                                    <p className="text-sm text-slate-500">{company.roles}</p>
+                                                    <div className="flex items-center gap-4 mt-2 text-xs text-slate-400 font-medium">
+                                                        <span className="flex items-center gap-1"><Calendar size={12} /> {company.visitDate}</span>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleGiveFeedback(company)}
+                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md transition transform active:scale-95"
+                                                >
+                                                    Give Feedback
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
 
-                            {/* Pending - Row Style */}
-                            <div className="flex items-center gap-4 p-3 rounded-xl bg-orange-50/50 border border-orange-100">
-                                <div className="p-3 bg-orange-100 text-orange-600 rounded-lg">
-                                    <Briefcase size={24} />
-                                </div>
-                                <div>
-                                    <h4 className="text-2xl font-bold text-slate-800">{Math.max(0, AVAILABLE_COMPANIES.length - feedbacks.length)}</h4>
-                                    <p className="text-xs font-semibold text-slate-500 uppercase">Pending</p>
-                                </div>
-                            </div>
-
-                            {/* Completed - Row Style */}
-                            <div className="flex items-center gap-4 p-3 rounded-xl bg-green-50/50 border border-green-100">
-                                <div className="p-3 bg-green-100 text-green-600 rounded-lg">
-                                    <CheckCircle size={24} />
-                                </div>
-                                <div>
-                                    <h4 className="text-2xl font-bold text-slate-800">{feedbacks.length}</h4>
-                                    <p className="text-xs font-semibold text-slate-500 uppercase">Completed</p>
-                                </div>
+                            {/* 2. Global Approved Feedbacks (Read Only) */}
+                            <div className="pt-6 border-t border-slate-100">
+                                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">Latest Student Experiences</h3>
+                                {approvedFeedbacks.length === 0 ? (
+                                    <div className="text-center py-8 text-slate-400 italic text-sm">
+                                        No experiences shared yet.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {approvedFeedbacks.map(fb => (
+                                            <div key={fb._id} className="bg-slate-50 hover:bg-white p-4 rounded-xl border border-slate-100 transition duration-200">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div>
+                                                        <h4 className="font-bold text-slate-700">{fb.companyName}</h4>
+                                                        <span className="text-xs text-slate-500">{fb.jobRole}</span>
+                                                    </div>
+                                                    <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded">APPROVED</span>
+                                                </div>
+                                                <p className="text-sm text-slate-600 line-clamp-2 italic">"{fb.overallExperience}"</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Modals */}
-            {activeModal === 'off-campus-entry' && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full relative overflow-hidden">
-                        <button
-                            onClick={() => setActiveModal(null)}
-                            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition"
-                        >
-                            <XCircle size={24} />
-                        </button>
-
-                        <h2 className="text-xl font-bold text-slate-800 mb-1">Off-Campus Details</h2>
-                        <p className="text-slate-500 text-sm mb-6">Enter company and package information</p>
-
-                        <form onSubmit={handleOffCampusSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Company Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    className="w-full border border-slate-200 bg-slate-50/50 rounded-xl p-3.5 focus:ring-2 focus:ring-sky-500 outline-none"
-                                    placeholder="e.g. Google"
-                                    value={tempCompanyDetails.name}
-                                    onChange={(e) => setTempCompanyDetails(prev => ({ ...prev, name: e.target.value }))}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Package (LPA)</label>
-                                <input
-                                    type="text"
-                                    required
-                                    className="w-full border border-slate-200 bg-slate-50/50 rounded-xl p-3.5 focus:ring-2 focus:ring-sky-500 outline-none"
-                                    placeholder="e.g. 12 LPA"
-                                    value={tempCompanyDetails.package}
-                                    onChange={(e) => setTempCompanyDetails(prev => ({ ...prev, package: e.target.value }))}
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                className="w-full py-3.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold shadow-lg transition flex items-center justify-center gap-2 mt-4"
-                            >
-                                Continue <ChevronRight size={18} />
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            )}
-
+            {/* Wizard Modal (Local Feature) */}
             {activeModal === 'feedback' && (
                 <FeedbackWizard
                     currentUser={currentUser}
                     initialCompany={selectedCompany}
-                    initialPackage={tempCompanyDetails.package}
+                    // initialPackage passed if needed, but not in remote data model simple generic
                     onClose={() => setActiveModal(null)}
                     onSuccess={() => {
                         setActiveModal(null);
