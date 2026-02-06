@@ -1,19 +1,14 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { LogOut, User } from "lucide-react";
-import { auth } from "../lib/firebase";
 
 export default function Header() {
-    const { currentUser, userRole } = useAuth();
+    const { currentUser, userRole, logout } = useAuth();
     const navigate = useNavigate();
 
-    const handleLogout = async () => {
-        try {
-            await auth.signOut();
-            navigate("/login");
-        } catch (e) {
-            console.error("Logout failed", e);
-        }
+    const handleLogout = () => {
+        logout();
+        navigate("/login");
     };
 
     const dashboardLink = userRole === 'admin' ? '/admin' : userRole === 'coordinator' ? '/coordinator' : '/student';

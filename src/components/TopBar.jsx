@@ -1,14 +1,13 @@
 import { useAuth } from "../contexts/AuthContext";
 import { LogOut, Menu } from "lucide-react";
-import { auth } from "../lib/firebase";
 import { useNavigate } from "react-router-dom";
 
 export default function TopBar({ toggleSidebar }) {
-    const { currentUser } = useAuth();
+    const { currentUser, logout } = useAuth();
     const navigate = useNavigate();
 
-    const handleLogout = async () => {
-        await auth.signOut();
+    const handleLogout = () => {
+        logout();
         navigate("/login");
     };
 
