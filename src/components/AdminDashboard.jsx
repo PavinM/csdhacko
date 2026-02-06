@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/api"; // MERN API
-import { Users, Building, BarChart2, MoreVertical, Search, UserPlus, X, Star, FileCheck, CheckCircle } from "lucide-react";
+import * as XLSX from 'xlsx';
+import { Users, Building, BarChart2, MoreVertical, Search, UserPlus, X, Star, FileCheck, CheckCircle, Plus, Upload, FileSpreadsheet } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function AdminDashboard() {
     const { currentUser, createUser } = useAuth();
     const [users, setUsers] = useState([]);
+    const [companiesList, setCompaniesList] = useState([]);
     const [dashboardData, setDashboardData] = useState({
         pendingFeedback: 0,
         totalFeedback: 0,
@@ -16,7 +18,19 @@ export default function AdminDashboard() {
     });
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
+    const [isAddingCompany, setIsAddingCompany] = useState(false);
+    const [isBulkUploading, setIsBulkUploading] = useState(false);
     const [newUser, setNewUser] = useState({ name: '', email: '', password: '', department: '' });
+
+    // New Company Form State
+    const [newCompany, setNewCompany] = useState({
+        name: '',
+        visitDate: '',
+        roles: '',
+        eligibility: '',
+        package: '',
+        department: '' // Admin must specify department
+    });
 
     useEffect(() => {
         if (currentUser) {
@@ -33,6 +47,7 @@ export default function AdminDashboard() {
             ]);
 
             setUsers(usersRes.data);
+            setCompaniesList(companiesRes.data);
             const feedbacks = feedbackRes.data;
 
             setDashboardData({
@@ -66,6 +81,54 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleAddCompany = async (e) => {
+        e.preventDefault();
+        try {
+            await api.post('/companies', {
+                ...newCompany,
+                status: 'scheduled'
+            });
+            setIsAddingCompany(false);
+            setNewCompany({ name: '', visitDate: '', roles: '', eligibility: '', package: '', department: '' });
+            fetchAllData();
+            alert("Company drive added successfully!");
+        } catch (error) {
+            alert("Error adding company: " + error.message);
+        }
+    };
+
+    const handleBulkUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            try {
+                const bstr = evt.target.result;
+                const wb = XLSX.read(bstr, { type: 'binary' });
+                const wsname = wb.SheetNames[0];
+                const ws = wb.Sheets[wsname];
+                const data = XLSX.utils.sheet_to_json(ws);
+
+                if (data.length === 0) {
+                    alert('No data found in the file.');
+                    return;
+                }
+
+                // Call Bulk Register endpoint
+                const res = await api.post('/auth/bulk-register', { students: data });
+
+                alert(`Bulk upload successful! ${res.data.count} students registered.`);
+                setIsBulkUploading(false);
+                fetchAllData();
+            } catch (error) {
+                console.error("Bulk upload error:", error);
+                alert("Bulk upload failed: " + (error.response?.data?.message || error.message));
+            }
+        };
+        reader.readAsBinaryString(file);
+    };
+
     if (loading) return <div className="p-8 text-center text-gray-500">Loading system data...</div>;
 
     const stats = [
@@ -92,6 +155,18 @@ export default function AdminDashboard() {
                         className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-bold transition shadow-md"
                     >
                         <UserPlus size={18} /> New Coordinator
+                    </button>
+                    <button
+                        onClick={() => setIsAddingCompany(true)}
+                        className="flex items-center gap-2 bg-[#1A237E] hover:bg-[#283593] text-white px-4 py-2 rounded-lg font-bold transition shadow-md"
+                    >
+                        <Plus size={18} /> Add Company
+                    </button>
+                    <button
+                        onClick={() => setIsBulkUploading(true)}
+                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold transition shadow-md"
+                    >
+                        <Upload size={18} /> Bulk Students
                     </button>
                 </div>
             </div>
@@ -149,6 +224,107 @@ export default function AdminDashboard() {
                 </div>
             )}
 
+            {/* Add Company Modal */}
+            {isAddingCompany && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-0 animate-fade-in relative overflow-hidden">
+                        <div className="bg-[#1A237E] p-6 text-white">
+                            <button
+                                onClick={() => setIsAddingCompany(false)}
+                                className="absolute top-4 right-4 text-white/50 hover:text-white transition"
+                            >
+                                <X size={24} />
+                            </button>
+                            <h2 className="text-xl font-bold flex items-center gap-2">
+                                <Building size={24} /> Add New Company
+                            </h2>
+                            <p className="text-blue-200 text-sm mt-1">Schedule a new placement drive</p>
+                        </div>
+
+                        <form onSubmit={handleAddCompany} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Company Name</label>
+                                <input
+                                    type="text" required
+                                    className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
+                                    value={newCompany.name} onChange={e => setNewCompany({ ...newCompany, name: e.target.value })}
+                                    placeholder="e.g. Google"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Department</label>
+                                    <input
+                                        type="text" required
+                                        className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
+                                        value={newCompany.department} onChange={e => setNewCompany({ ...newCompany, department: e.target.value })}
+                                        placeholder="e.g. CSE"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Visit Date</label>
+                                    <input
+                                        type="date" required
+                                        className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
+                                        value={newCompany.visitDate} onChange={e => setNewCompany({ ...newCompany, visitDate: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Package (LPA)</label>
+                                    <input
+                                        type="text"
+                                        className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
+                                        value={newCompany.package} onChange={e => setNewCompany({ ...newCompany, package: e.target.value })}
+                                        placeholder="e.g. 12 LPA"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Roles Offered</label>
+                                    <input
+                                        type="text" required
+                                        className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white"
+                                        value={newCompany.roles} onChange={e => setNewCompany({ ...newCompany, roles: e.target.value })}
+                                        placeholder="e.g. SDE"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Eligibility Criteria</label>
+                                <textarea
+                                    className="w-full border border-slate-200 rounded-lg p-3 focus:border-[#1A237E] outline-none transition bg-slate-50 focus:bg-white resize-none h-24"
+                                    value={newCompany.eligibility} onChange={e => setNewCompany({ ...newCompany, eligibility: e.target.value })}
+                                    placeholder="CGPA > 8.0..."
+                                />
+                            </div>
+
+                            <button type="submit" className="w-full bg-[#1A237E] hover:bg-[#283593] text-white font-bold py-3.5 rounded-lg mt-2 shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
+                                <Plus size={18} /> Schedule Drive
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk Upload Modal */}
+            {isBulkUploading && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-fade-in relative">
+                        <button onClick={() => setIsBulkUploading(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><X size={20} /></button>
+                        <h2 className="text-xl font-bold text-emerald-800 mb-2 flex items-center gap-2"><Upload size={24} /> Bulk Student Upload</h2>
+                        <p className="text-sm text-slate-500 mb-6">Upload an Excel file to register multiple students. The file must have headers matching student fields (Name, Email, RollNo, Department, etc.).</p>
+
+                        <div className="border-2 border-dashed border-emerald-100 bg-emerald-50 rounded-xl p-8 text-center hover:bg-emerald-100 transition cursor-pointer relative">
+                            <input type="file" accept=".xlsx, .xls" onChange={handleBulkUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                            <FileSpreadsheet size={48} className="mx-auto text-emerald-400 mb-3" />
+                            <p className="font-bold text-emerald-700">Click to upload Excel</p>
+                            <p className="text-xs text-emerald-600 mt-1">.xlsx or .xls files supported</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {stats.map((stat, idx) => (
@@ -181,6 +357,55 @@ export default function AdminDashboard() {
                     </Link>
                 </div>
             )}
+
+            {/* Completed Drives Overview */}
+            <div>
+                <h2 className="text-xl font-bold text-indigo-900 mb-4 flex items-center gap-2">
+                    <Building size={20} /> Recruitment Drives Overview
+                </h2>
+                {dashboardData.companies === 0 ? (
+                    <div className="bg-slate-50 p-6 rounded-xl border border-dashed border-slate-300 text-center text-slate-500">
+                        No drives found in the system.
+                    </div>
+                ) : (
+                    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50 text-slate-500 uppercase text-xs font-bold tracking-wider">
+                                <tr>
+                                    <th className="p-4">Company</th>
+                                    <th className="p-4">Department</th>
+                                    <th className="p-4">Date</th>
+                                    <th className="p-4">Eligibility</th>
+                                    <th className="p-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {companiesList.map(company => (
+                                    <tr key={company._id} className="hover:bg-slate-50">
+                                        <td className="p-4 font-bold text-indigo-900">{company.name}</td>
+                                        <td className="p-4 text-sm text-slate-600">{company.department}</td>
+                                        <td className="p-4 text-sm text-slate-500">{company.visitDate}</td>
+                                        <td className="p-4">
+                                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">
+                                                {company.eligibleStudents?.length || 0} Students
+                                            </span>
+                                        </td>
+                                        <td className="p-4">
+                                            <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${company.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                                                }`}>
+                                                {company.status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        <div className="p-4 text-center text-slate-500 text-sm">
+                            * Detailed company list management is available in Coordinator Dashboard.
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* User Table Card */}
             <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">

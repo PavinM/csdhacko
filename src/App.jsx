@@ -102,7 +102,7 @@ function App() {
 
             {/* Coordinator Sub-routes */}
             <Route path="/coordinator/students" element={
-              <PrivateRoute allowedRoles={['coordinator', 'admin']}>
+              <PrivateRoute allowedRoles={['coordinator']}>
                 <StudentManagement />
               </PrivateRoute>
             } />

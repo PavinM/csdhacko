@@ -12,7 +12,10 @@ const createAdmin = async () => {
         const adminExists = await User.findOne({ email: 'admin@kongu.edu' });
 
         if (adminExists) {
-            console.log('Admin user already exists');
+            console.log('Admin user already exists. Updating password...');
+            adminExists.password = 'admin123';
+            await adminExists.save();
+            console.log('Admin password updated successfully');
             process.exit(0);
         }
 
