@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Lock, Mail, ChevronRight } from "lucide-react";
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from "../contexts/AuthContext";
 import kecLogo from "../assets/KEC.png";
 
@@ -14,7 +15,7 @@ export default function Login() {
     const [error, setError] = useState("");
 
     const navigate = useNavigate();
-    const { currentUser, userRole, login, signup } = useAuth();
+    const { currentUser, userRole, login, signup, googleLogin } = useAuth();
 
     useEffect(() => {
         if (currentUser && userRole) {
@@ -46,6 +47,19 @@ export default function Login() {
             console.error(err);
             setError(err.message);
         }
+    };
+
+    const handleGoogleSuccess = async (credentialResponse) => {
+        try {
+            await googleLogin(credentialResponse.credential);
+            // Redirect handled by useEffect
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const handleGoogleError = () => {
+        setError("Google Sign-In Failed");
     };
 
     return (
@@ -212,6 +226,27 @@ export default function Login() {
                                 </button>
                             </p>
                         </div>
+
+                        {/* Google Sign In Section */}
+                        {isLogin && (
+                            <div className="mt-6 border-t pt-6">
+                                <div className="flex justify-center">
+                                    <GoogleLogin
+                                        onSuccess={handleGoogleSuccess}
+                                        onError={handleGoogleError}
+                                        theme="filled_blue"
+                                        shape="pill"
+                                        text="signin_with"
+                                        size="large"
+                                        width="300"
+                                    />
+                                </div>
+                                <p className="text-xs text-center text-gray-500 mt-2">
+                                    Only for students with <strong>@kongu.edu</strong> email
+                                </p>
+                            </div>
+                        )}
+
                     </div>
                 </div>
             </div>

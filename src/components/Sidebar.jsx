@@ -11,7 +11,7 @@ import {
 import kecLogo from "../assets/KEC.png";
 
 export default function Sidebar() {
-    const { userRole, currentUser } = useAuth();
+    const { userRole, currentUser, logout } = useAuth();
     const location = useLocation();
 
     if (!currentUser) return null;
@@ -101,6 +101,20 @@ export default function Sidebar() {
                     </Link>
                 ))}
             </nav>
+
+            {/* Logout Button */}
+            <div className="px-4 py-2">
+                <button
+                    onClick={() => {
+                        logout();
+                        window.location.href = "/login";
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-blue-100 hover:bg-white/10 hover:text-red-400 transition-all duration-300 group"
+                >
+                    <LogOut size={20} className="text-blue-300 group-hover:text-red-400" />
+                    <span className="font-semibold">Logout</span>
+                </button>
+            </div>
 
             {/* Footer / Copyright */}
             <div className="p-6 text-center text-[10px] text-blue-400/60 border-t border-white/5">

@@ -3,7 +3,6 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useState } from "react";
 import Login from "./components/Login";
 import Sidebar from "./components/Sidebar";
-import TopBar from "./components/TopBar";
 import StudentDashboard from "./components/StudentDashboard";
 import CoordinatorDashboard from "./components/CoordinatorDashboard";
 import StudentManagement from "./components/StudentManagement";
@@ -54,7 +53,7 @@ function Layout({ children }) {
     <div className="min-h-screen bg-academic-gray flex">
       {currentUser && <Sidebar mobileOpen={sidebarOpen} />}
       <div className="flex-1 flex flex-col min-w-0 transition-all md:pl-72">
-        {currentUser && <TopBar toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />}
+        {/* TopBar removed as requested */}
         <main className="flex-1 p-6 overflow-y-auto">
           {children}
         </main>

@@ -83,6 +83,26 @@ export function AuthProvider({ children }) {
         }
     };
 
+    // Google Login Function
+    const googleLogin = async (token) => {
+        setLoading(true);
+        try {
+            const { data } = await api.post('/auth/google', { token });
+            console.log("AuthContext: Google Login success", data);
+
+            setCurrentUser(data);
+            setUserRole(data.role);
+            localStorage.setItem("user", JSON.stringify(data));
+
+            return true;
+        } catch (error) {
+            console.error("Google Login Error:", error.response?.data?.message || error.message);
+            throw new Error(error.response?.data?.message || "Google Sign-In failed");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Create User (Admin/Coordinator feature - adds student/user without logging in)
     const createUser = async (email, password, additionalData) => {
         setLoading(true);
@@ -116,6 +136,7 @@ export function AuthProvider({ children }) {
         loading,
         login,
         signup,
+        googleLogin,
         createUser,
         logout
     };
