@@ -24,11 +24,19 @@ export default function StudentDashboard() {
     const fetchDashboardData = async () => {
         try {
             // 1. Fetch Companies for "Give Feedback"
+            // 1. Fetch Companies for "Give Feedback"
             const companyRes = await api.get('/companies');
-            const eligible = companyRes.data.filter(c =>
-                c.status === 'completed' &&
-                c.eligibleStudents?.map(e => e.toLowerCase()).includes(currentUser.email.toLowerCase())
-            );
+            const eligible = companyRes.data.filter(c => {
+                if (c.status !== 'completed') return false;
+
+                // DATA CLEANING: Normalize emails to handle typos like ".." -> "."
+                const eligibilityList = c.eligibleStudents?.map(e => e.toLowerCase().trim().replace(/\.\./g, '.')) || [];
+                const userEmail = currentUser.email.toLowerCase().trim().replace(/\.\./g, '.');
+                const userRollNo = currentUser.rollNo ? currentUser.rollNo.toLowerCase().trim() : "";
+
+                // Check strict email match OR RollNo match
+                return eligibilityList.includes(userEmail) || (userRollNo && eligibilityList.includes(userRollNo));
+            });
             setAvailableCompanies(eligible);
 
             // 2. Fetch All Approved Feedbacks (Global View)
@@ -106,7 +114,7 @@ export default function StudentDashboard() {
             </div>
 
             <div className="grid grid-cols-1 gap-6">
-                {/* 2. Main Content */}
+                {/* 2. Main Content: Help Juniors / Pending Feedbacks */}
                 <div className="space-y-6">
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[400px]">
                         <div className="flex justify-between items-center mb-6">
@@ -191,94 +199,98 @@ export default function StudentDashboard() {
                         </div>
                     </div>
                 </div>
-            </div>
+            </div >
 
             {/* Feedback Details Modal (Local Feature) */}
-            {viewFeedback && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col animate-fade-in-up">
-                        <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50">
-                            <div>
-                                <h3 className="font-bold text-xl text-[#1A237E]">{viewFeedback.companyName}</h3>
-                                <p className="text-sm text-slate-500">{viewFeedback.jobRole} • {viewFeedback.driveDate}</p>
-                            </div>
-                            <button
-                                onClick={() => setViewFeedback(null)}
-                                className="text-slate-400 hover:text-slate-600 transition bg-white p-2 rounded-full shadow-sm hover:shadow"
-                            >
-                                <XCircle size={24} />
-                            </button>
-                        </div>
-
-                        <div className="overflow-y-auto p-6 space-y-6">
-                            {/* Experience Section */}
-                            <div>
-                                <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                    <span className="w-1 h-4 bg-indigo-500 rounded-full"></span>
-                                    Overall Experience
-                                </h4>
-                                <div className="bg-indigo-50/50 p-5 rounded-xl border border-indigo-100 text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">
-                                    {viewFeedback.overallExperience}
+            {
+                viewFeedback && (
+                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col animate-fade-in-up">
+                            <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50">
+                                <div>
+                                    <h3 className="font-bold text-xl text-[#1A237E]">{viewFeedback.companyName}</h3>
+                                    <p className="text-sm text-slate-500">{viewFeedback.jobRole} • {viewFeedback.driveDate}</p>
                                 </div>
+                                <button
+                                    onClick={() => setViewFeedback(null)}
+                                    className="text-slate-400 hover:text-slate-600 transition bg-white p-2 rounded-full shadow-sm hover:shadow"
+                                >
+                                    <XCircle size={24} />
+                                </button>
                             </div>
 
-                            {/* Rounds Section */}
-                            {viewFeedback.rounds && viewFeedback.rounds.length > 0 && (
+                            <div className="overflow-y-auto p-6 space-y-6">
+                                {/* Experience Section */}
                                 <div>
                                     <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                        <span className="w-1 h-4 bg-teal-500 rounded-full"></span>
-                                        Interview Rounds
+                                        <span className="w-1 h-4 bg-indigo-500 rounded-full"></span>
+                                        Overall Experience
                                     </h4>
-                                    <div className="space-y-3">
-                                        {viewFeedback.rounds.map((round, idx) => (
-                                            <div key={idx} className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-                                                <div className="font-bold text-[#1A237E] mb-1">{round.name}</div>
-                                                <p className="text-sm text-slate-600 whitespace-pre-wrap">{round.questions}</p>
-                                            </div>
-                                        ))}
+                                    <div className="bg-indigo-50/50 p-5 rounded-xl border border-indigo-100 text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">
+                                        {viewFeedback.overallExperience}
                                     </div>
                                 </div>
-                            )}
 
-                            {/* Preparation Tips Section */}
-                            {viewFeedback.preparationTips && (
-                                <div>
-                                    <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                        <span className="w-1 h-4 bg-amber-500 rounded-full"></span>
-                                        Preparation Tips
-                                    </h4>
-                                    <div className="bg-amber-50/50 p-5 rounded-xl border border-amber-100 text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">
-                                        {viewFeedback.preparationTips}
+                                {/* Rounds Section */}
+                                {viewFeedback.rounds && viewFeedback.rounds.length > 0 && (
+                                    <div>
+                                        <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                            <span className="w-1 h-4 bg-teal-500 rounded-full"></span>
+                                            Interview Rounds
+                                        </h4>
+                                        <div className="space-y-3">
+                                            {viewFeedback.rounds.map((round, idx) => (
+                                                <div key={idx} className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+                                                    <div className="font-bold text-[#1A237E] mb-1">{round.name}</div>
+                                                    <p className="text-sm text-slate-600 whitespace-pre-wrap">{round.questions}</p>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                        </div>
+                                )}
 
-                        <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end">
-                            <button
-                                onClick={() => setViewFeedback(null)}
-                                className="px-6 py-2 bg-[#1A237E] hover:bg-[#283593] text-white font-bold rounded-lg transition shadow-md"
-                            >
-                                Close
-                            </button>
+                                {/* Preparation Tips Section */}
+                                {viewFeedback.preparationTips && (
+                                    <div>
+                                        <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                            <span className="w-1 h-4 bg-amber-500 rounded-full"></span>
+                                            Preparation Tips
+                                        </h4>
+                                        <div className="bg-amber-50/50 p-5 rounded-xl border border-amber-100 text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">
+                                            {viewFeedback.preparationTips}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end">
+                                <button
+                                    onClick={() => setViewFeedback(null)}
+                                    className="px-6 py-2 bg-[#1A237E] hover:bg-[#283593] text-white font-bold rounded-lg transition shadow-md"
+                                >
+                                    Close
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Wizard Modal (Remote Feature - Replacing Local Inline Form) */}
-            {activeModal === 'feedback' && (
-                <FeedbackWizard
-                    currentUser={currentUser}
-                    initialCompany={selectedCompany}
-                    onClose={() => setActiveModal(null)}
-                    onSuccess={() => {
-                        setActiveModal(null);
-                        fetchDashboardData();
-                    }}
-                />
-            )}
-        </div>
+            {
+                activeModal === 'feedback' && (
+                    <FeedbackWizard
+                        currentUser={currentUser}
+                        initialCompany={selectedCompany}
+                        onClose={() => setActiveModal(null)}
+                        onSuccess={() => {
+                            setActiveModal(null);
+                            fetchDashboardData();
+                        }}
+                    />
+                )
+            }
+        </div >
     );
 }
 

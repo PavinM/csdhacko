@@ -157,6 +157,11 @@ router.post('/google', asyncHandler(async (req, res) => {
             role: user.role,
             department: user.department,
             rollNo: user.rollNo, // Return to frontend
+            // Academic Details
+            tenthMark: user.tenthMark,
+            twelfthMark: user.twelfthMark,
+            cgpa: user.cgpa,
+            domain: user.domain,
             token: generateToken(user._id),
         });
     } else {
@@ -191,20 +196,25 @@ router.post('/google', asyncHandler(async (req, res) => {
             rollNo: rollNo || '',
         });
 
-        if (user) {
-            res.status(201).json({
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                department: user.department,
-                token: generateToken(user._id),
-            });
-        } else {
-            res.status(400);
-            throw new Error('Invalid user data for Google Sign-In');
-        }
+        res.status(201).json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            department: user.department,
+            rollNo: user.rollNo,
+            // Academic Details
+            tenthMark: user.tenthMark,
+            twelfthMark: user.twelfthMark,
+            cgpa: user.cgpa,
+            domain: user.domain,
+            token: generateToken(user._id),
+        });
+    } else {
+        res.status(400);
+        throw new Error('Invalid user data for Google Sign-In');
     }
+}
 }));
 
 
@@ -251,9 +261,10 @@ router.post('/bulk-register', protect, admin, asyncHandler(async (req, res) => {
         const domain = student['domain'] || student['area of interest'];
 
         // Academic Fields
-        const tenthMark = student['10th percentage'] || student['10th %'] || student['10th'] || student['tenthmark'];
-        const twelfthMark = student['12th percentage'] || student['12th %'] || student['12th'] || student['twelfthmark'];
-        const cgpa = student['current cgpa'] || student['cgpa'];
+        // Academic Fields -> Robust Parsing
+        const tenthMark = student['10th percentage'] || student['10th %'] || student['10th'] || student['tenthmark'] || student['10th mark'] || student['sslc'] || student['sslc mark'] || student['sslc %'];
+        const twelfthMark = student['12th percentage'] || student['12th %'] || student['12th'] || student['twelfthmark'] || student['12th mark'] || student['hsc'] || student['hsc mark'] || student['hsc %'] || student['plus two'];
+        const cgpa = student['current cgpa'] || student['cgpa'] || student['cgpa (out of 10)'];
 
         // Determine password for NEW users only
         const plainPassword = rollNo ? rollNo.toString() : (dob ? dob.toString() : 'password123');
