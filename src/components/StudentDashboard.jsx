@@ -1,21 +1,14 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/api"; // MERN API
-<<<<<<< HEAD
 import { Plus, ChevronRight, BarChart2, BookOpen, ExternalLink, XCircle, FileText, CheckCircle, Calendar, Briefcase, Sparkles, Share2 } from "lucide-react";
 import FeedbackWizard from "./FeedbackWizard";
-=======
-import { XCircle, FileText, Calendar } from "lucide-react";
->>>>>>> 809686e003f0875465da8dad87b80b6fbd38f8b7
 
 export default function StudentDashboard() {
     const { currentUser } = useAuth();
     const [availableCompanies, setAvailableCompanies] = useState([]); // Companies open for feedback
     const [approvedFeedbacks, setApprovedFeedbacks] = useState([]); // All approved feedbacks (Global View)
     const [loading, setLoading] = useState(true);
-    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-    const [selectedCompany, setSelectedCompany] = useState(null);
-
     // Modal State
     const [activeModal, setActiveModal] = useState(null); // 'feedback' | 'resource' | null
     const [selectedCompany, setSelectedCompany] = useState("");
@@ -85,33 +78,7 @@ export default function StudentDashboard() {
 
 
 
-<<<<<<< HEAD
-=======
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            await api.post('/feedback', {
-                ...formData,
-                department: currentUser.department
-            });
-            alert("Feedback submitted successfully! Waiting for approval.");
-            setShowFeedbackModal(false); // Changed from setShowForm to setShowFeedbackModal
-            setFormData({
-                companyName: '',
-                jobRole: '',
-                driveDate: '',
-                overallExperience: '',
-                preparationTips: '',
-                rounds: [{ name: '', questions: '' }],
-                difficulty: 'Medium'
-            });
-            fetchDashboardData(); // Refresh list
-        } catch (error) {
-            console.error("Error submitting feedback:", error);
-            alert("Failed to submit feedback.");
-        }
-    };
->>>>>>> 809686e003f0875465da8dad87b80b6fbd38f8b7
+
 
     if (loading) return <div className="flex justify-center py-20 text-gray-400">Loading your dashboard...</div>;
 
@@ -139,116 +106,117 @@ export default function StudentDashboard() {
             </div>
 
 <<<<<<< HEAD
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* 2. Left Column: Help Juniors / Pending Feedbacks */}
-                {/* 3. Main Grid Content: Companies List */}
-                <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-bold text-slate-800">Companies Open for Feedback</h3>
-                        <button
-                            onClick={handleOpenOffCampus}
-                            className="bg-sky-500 hover:bg-sky-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-md hover:shadow-lg transform active:scale-95 ml-auto"
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* 2. Left Column: Help Juniors / Pending Feedbacks */}
+        {/* 3. Main Grid Content: Companies List */}
+        <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+            <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-slate-800">Companies Open for Feedback</h3>
+                <button
+                    onClick={handleOpenOffCampus}
+                    className="bg-sky-500 hover:bg-sky-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-md hover:shadow-lg transform active:scale-95 ml-auto"
+                >
+                    <Plus size={18} /> Add Off-Campus
+                </button>
+            </div>
+
+            {/* Companies List - Vertical Stack */}
+            <div className="flex flex-col gap-4">
+                {AVAILABLE_COMPANIES.map((company, index) => {
+                    // Check if feedback already exists for this company
+                    const submittedFeedback = feedbacks.find(f => f.companyName.toLowerCase() === company.name.toLowerCase());
+                    const status = submittedFeedback ? submittedFeedback.status : 'Pending Feedback';
+
+                    const statusText = submittedFeedback ? (status === 'approved' ? 'Approved' : status === 'pending' ? 'Pending' : 'Rejected') : "Pending Feedback";
+                    const statusColor = submittedFeedback ? (status === 'approved' ? 'text-green-700 bg-green-100' : status === 'pending' ? 'text-amber-700 bg-amber-100' : 'text-red-500 bg-red-50') : "text-orange-500 bg-orange-50";
+
+                    return (
+                        <div
+                            key={index}
+                            onClick={() => handleCompanyClick(company.name)}
+                            className="bg-slate-50 rounded-xl p-4 hover:bg-white hover:shadow-md border border-transparent hover:border-sky-200 transition-all duration-300 cursor-pointer flex items-center justify-between group"
                         >
-                            <Plus size={18} /> Add Off-Campus
-                        </button>
-                    </div>
-
-                    {/* Companies List - Vertical Stack */}
-                    <div className="flex flex-col gap-4">
-                        {AVAILABLE_COMPANIES.map((company, index) => {
-                            // Check if feedback already exists for this company
-                            const submittedFeedback = feedbacks.find(f => f.companyName.toLowerCase() === company.name.toLowerCase());
-                            const status = submittedFeedback ? submittedFeedback.status : 'Pending Feedback';
-
-                            const statusText = submittedFeedback ? (status === 'approved' ? 'Approved' : status === 'pending' ? 'Pending' : 'Rejected') : "Pending Feedback";
-                            const statusColor = submittedFeedback ? (status === 'approved' ? 'text-green-700 bg-green-100' : status === 'pending' ? 'text-amber-700 bg-amber-100' : 'text-red-500 bg-red-50') : "text-orange-500 bg-orange-50";
-
-                            return (
-                                <div
-                                    key={index}
-                                    onClick={() => handleCompanyClick(company.name)}
-                                    className="bg-slate-50 rounded-xl p-4 hover:bg-white hover:shadow-md border border-transparent hover:border-sky-200 transition-all duration-300 cursor-pointer flex items-center justify-between group"
-                                >
-                                    {/* Left Side: Name & Package */}
-                                    <div className="flex flex-col gap-1 min-w-0">
-                                        <h3 className="text-lg font-bold text-slate-800 group-hover:text-primary-blue transition-colors truncate">
-                                            {company.name}
-                                        </h3>
-                                        <p className="text-sm font-semibold text-slate-400">
-                                            {company.package}
-                                        </p>
-                                    </div>
-
-                                    {/* Right Side: Arrow Button */}
-                                    <div className="flex items-center gap-3 shrink-0">
-
-                                        <span className={`text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-full ${statusColor} whitespace-nowrap hidden sm:inline-block`}>
-                                            {statusText}
-                                        </span>
-
-                                        <div className="w-10 h-10 rounded-full bg-white text-primary-blue shadow-sm border border-slate-100 flex items-center justify-center group-hover:bg-primary-blue group-hover:text-white transition-all duration-300">
-                                            <ChevronRight size={20} strokeWidth={3} className="ml-0.5" />
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* 4. Right Sidebar (Stats) */}
-                <div className="space-y-6">
-                    {/* Stats Widget Panel */}
-                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-                        <h3 className="text-xl font-bold text-slate-800 mb-6">My Activity</h3>
-                        <div className="space-y-4">
-                            {/* Total - Row Style */}
-                            <div className="flex items-center gap-4 p-3 rounded-xl bg-sky-50/50 border border-sky-100">
-                                <div className="p-3 bg-sky-100 text-sky-600 rounded-lg">
-                                    <BarChart2 size={24} />
-                                </div>
-                                <div>
-                                    <h4 className="text-2xl font-bold text-slate-800">{AVAILABLE_COMPANIES.length}</h4>
-                                    <p className="text-xs font-semibold text-slate-500 uppercase">Total Companies</p>
-                                </div>
+                            {/* Left Side: Name & Package */}
+                            <div className="flex flex-col gap-1 min-w-0">
+                                <h3 className="text-lg font-bold text-slate-800 group-hover:text-primary-blue transition-colors truncate">
+                                    {company.name}
+                                </h3>
+                                <p className="text-sm font-semibold text-slate-400">
+                                    {company.package}
+                                </p>
                             </div>
 
-                            {/* Pending - Row Style */}
-                            <div className="flex items-center gap-4 p-3 rounded-xl bg-orange-50/50 border border-orange-100">
-                                <div className="p-3 bg-orange-100 text-orange-600 rounded-lg">
-                                    <Briefcase size={24} />
-                                </div>
-                                <div>
-                                    <h4 className="text-2xl font-bold text-slate-800">{Math.max(0, AVAILABLE_COMPANIES.length - feedbacks.length)}</h4>
-                                    <p className="text-xs font-semibold text-slate-500 uppercase">Pending</p>
-                                </div>
-                            </div>
+                            {/* Right Side: Arrow Button */}
+                            <div className="flex items-center gap-3 shrink-0">
 
-                            {/* Completed - Row Style */}
-                            <div className="flex items-center gap-4 p-3 rounded-xl bg-green-50/50 border border-green-100">
-                                <div className="p-3 bg-green-100 text-green-600 rounded-lg">
-                                    <CheckCircle size={24} />
-                                </div>
-                                <div>
-                                    <h4 className="text-2xl font-bold text-slate-800">{feedbacks.length}</h4>
-                                    <p className="text-xs font-semibold text-slate-500 uppercase">Completed</p>
+                                <span className={`text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-full ${statusColor} whitespace-nowrap hidden sm:inline-block`}>
+                                    {statusText}
+                                </span>
+
+                                <div className="w-10 h-10 rounded-full bg-white text-primary-blue shadow-sm border border-slate-100 flex items-center justify-center group-hover:bg-primary-blue group-hover:text-white transition-all duration-300">
+                                    <ChevronRight size={20} strokeWidth={3} className="ml-0.5" />
                                 </div>
                             </div>
                         </div>
+                    );
+                })}
+            </div>
+        </div>
+
+        {/* 4. Right Sidebar (Stats) */}
+        <div className="space-y-6">
+            {/* Stats Widget Panel */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <h3 className="text-xl font-bold text-slate-800 mb-6">My Activity</h3>
+                <div className="space-y-4">
+                    {/* Total - Row Style */}
+                    <div className="flex items-center gap-4 p-3 rounded-xl bg-sky-50/50 border border-sky-100">
+                        <div className="p-3 bg-sky-100 text-sky-600 rounded-lg">
+                            <BarChart2 size={24} />
+                        </div>
+                        <div>
+                            <h4 className="text-2xl font-bold text-slate-800">{AVAILABLE_COMPANIES.length}</h4>
+                            <p className="text-xs font-semibold text-slate-500 uppercase">Total Companies</p>
+                        </div>
                     </div>
 
+                    {/* Pending - Row Style */}
+                    <div className="flex items-center gap-4 p-3 rounded-xl bg-orange-50/50 border border-orange-100">
+                        <div className="p-3 bg-orange-100 text-orange-600 rounded-lg">
+                            <Briefcase size={24} />
+                        </div>
+                        <div>
+                            <h4 className="text-2xl font-bold text-slate-800">{Math.max(0, AVAILABLE_COMPANIES.length - feedbacks.length)}</h4>
+                            <p className="text-xs font-semibold text-slate-500 uppercase">Pending</p>
+                        </div>
+                    </div>
 
+                    {/* Completed - Row Style */}
+                    <div className="flex items-center gap-4 p-3 rounded-xl bg-green-50/50 border border-green-100">
+                        <div className="p-3 bg-green-100 text-green-600 rounded-lg">
+                            <CheckCircle size={24} />
+                        </div>
+                        <div>
+                            <h4 className="text-2xl font-bold text-slate-800">{feedbacks.length}</h4>
+                            <p className="text-xs font-semibold text-slate-500 uppercase">Completed</p>
+                        </div>
+                    </div>
                 </div>
-
             </div>
 
-            {/* Modals */}
-            {activeModal === 'off-campus-entry' && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full relative overflow-hidden">
-                        <button
-                            onClick={() => setActiveModal(null)}
-                            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition"
+
+        </div>
+
+    </div>
+
+    {/* Modals */ }
+    {
+        activeModal === 'off-campus-entry' && (
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+                <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full relative overflow-hidden">
+                    <button
+                        onClick={() => setActiveModal(null)}
+                        className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition"
 =======
             <div className="grid grid-cols-1 gap-6">
                 {/* 2. Main Content: Help Juniors / Pending Feedbacks */}
@@ -345,26 +313,26 @@ export default function StudentDashboard() {
                             onClick={() => setShowFeedbackModal(false)}
                             className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
 >>>>>>> 809686e003f0875465da8dad87b80b6fbd38f8b7
-                        >
-                            <XCircle size={24} />
-                        </button>
+                    >
+                        <XCircle size={24} />
+                    </button>
 
-                        <h2 className="text-xl font-bold text-slate-800 mb-1">Off-Campus Details</h2>
-                        <p className="text-slate-500 text-sm mb-6">Enter company and package information</p>
+                    <h2 className="text-xl font-bold text-slate-800 mb-1">Off-Campus Details</h2>
+                    <p className="text-slate-500 text-sm mb-6">Enter company and package information</p>
 
-                        <form onSubmit={handleOffCampusSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Company Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    className="w-full border border-slate-200 bg-slate-50/50 rounded-xl p-3.5 focus:ring-2 focus:ring-sky-500 outline-none"
-                                    placeholder="e.g. Google"
-                                    value={tempCompanyDetails.name}
-                                    onChange={(e) => setTempCompanyDetails(prev => ({ ...prev, name: e.target.value }))}
-                                />
-                            </div>
-                            <div>
+                    <form onSubmit={handleOffCampusSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Company Name</label>
+                            <input
+                                type="text"
+                                required
+                                className="w-full border border-slate-200 bg-slate-50/50 rounded-xl p-3.5 focus:ring-2 focus:ring-sky-500 outline-none"
+                                placeholder="e.g. Google"
+                                value={tempCompanyDetails.name}
+                                onChange={(e) => setTempCompanyDetails(prev => ({ ...prev, name: e.target.value }))}
+                            />
+                        </div>
+                        <div>
 <<<<<<< HEAD
                                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Package (LPA)</label>
                                 <input
@@ -452,34 +420,37 @@ export default function StudentDashboard() {
                                 <button type="button" onClick={() => setShowFeedbackModal(false)} className="px-6 py-2.5 text-gray-500 font-semibold hover:bg-gray-50 rounded-lg transition">Cancel</button>
                                 <button type="submit" className="px-8 py-2.5 bg-academic-blue hover:bg-blue-900 text-white font-bold rounded-lg shadow-lg transform active:scale-95 transition">Submit Application</button>
 >>>>>>> 809686e003f0875465da8dad87b80b6fbd38f8b7
-                            </div>
-                            <button
-                                type="submit"
-                                className="w-full py-3.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold shadow-lg transition flex items-center justify-center gap-2 mt-4"
-                            >
-                                Continue <ChevronRight size={18} />
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            )}
+                            </div >
+            <button
+                type="submit"
+                className="w-full py-3.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold shadow-lg transition flex items-center justify-center gap-2 mt-4"
+            >
+                Continue <ChevronRight size={18} />
+            </button>
+                        </form >
+                    </div >
+                </div >
+            )
+    }
 
 
 
-            {activeModal === 'feedback' && (
-                <FeedbackWizard
-                    currentUser={currentUser}
-                    initialCompany={selectedCompany}
-                    initialPackage={tempCompanyDetails.package}
-                    onClose={() => setActiveModal(null)}
-                    onSuccess={() => {
-                        setActiveModal(null);
-                        fetchFeedbacks();
-                    }}
-                />
-            )}
+    {
+        activeModal === 'feedback' && (
+            <FeedbackWizard
+                currentUser={currentUser}
+                initialCompany={selectedCompany}
+                initialPackage={tempCompanyDetails.package}
+                onClose={() => setActiveModal(null)}
+                onSuccess={() => {
+                    setActiveModal(null);
+                    fetchFeedbacks();
+                }}
+            />
+        )
+    }
 
 
-        </div>
+        </div >
     );
 }
