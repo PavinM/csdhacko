@@ -42,27 +42,27 @@ export default function Login() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-neutral-gray p-4 md:p-6 font-sans">
+        <div className="flex items-center justify-center min-h-screen bg-[#f5f5f5] p-4 md:p-6 font-sans">
             <div className="flex w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden min-h-[650px]">
 
-                {/* Brand Side (Left) - Professional Academic Style */}
-                <div className="hidden md:flex w-5/12 bg-gradient-to-br from-brand-green to-brand-blue relative flex-col justify-between p-10 text-white">
+                {/* Brand Side (Left) - KEC Official Colors */}
+                <div className="hidden md:flex w-5/12 bg-gradient-to-br from-[#1A237E] to-[#283593] relative flex-col justify-between p-10 text-white">
                     <div className="relative z-10">
                         {/* Logo Section */}
-                        <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-6 shadow-lg p-3 mx-auto md:mx-0 border border-white/30">
-                            <img src={kecLogo} alt="KEC Logo" className="w-full h-full object-contain brightness-0 invert" />
+                        <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-lg p-2 mx-auto md:mx-0 border-4 border-white/20">
+                            <img src={kecLogo} alt="KEC Logo" className="w-full h-full object-contain" />
                         </div>
 
                         {/* College Name & Branding */}
                         <div className="mb-2">
                             <h1 className="text-3xl font-extrabold tracking-wide leading-tight drop-shadow-md">
-                                <span>KONGU</span> <br />
+                                <span className="text-[#8BC34A]">KONGU</span> <br />
                                 <span>ENGINEERING COLLEGE</span>
                             </h1>
-                            <div className="h-1 w-20 bg-accent-orange mt-4 rounded-full"></div>
+                            <div className="h-1 w-20 bg-[#8BC34A] mt-4 rounded-full"></div>
                         </div>
 
-                        <h2 className="text-lg font-light tracking-widest uppercase opacity-90 mt-2">
+                        <h2 className="text-lg font-bold tracking-widest uppercase opacity-90 mt-2">
                             Transform Yourself
                         </h2>
                     </div>
@@ -77,8 +77,8 @@ export default function Login() {
                     </div>
 
                     {/* Background Pattern Effects */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-brand-dark-blue/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4"></div>
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4"></div>
                 </div>
 
                 {/* Form Side (Right) */}
@@ -92,7 +92,7 @@ export default function Login() {
                                         key={r}
                                         onClick={() => setRole(r)}
                                         className={`flex-1 py-2 text-sm font-bold capitalize rounded-md transition-all ${role === r
-                                            ? "bg-white text-brand-dark-blue shadow-sm border border-gray-200"
+                                            ? "bg-white text-[#1A237E] shadow-sm border border-gray-200"
                                             : "text-gray-500 hover:text-gray-700"
                                             }`}
                                     >
@@ -103,7 +103,7 @@ export default function Login() {
                         )}
 
                         <div className="mb-8">
-                            <h2 className="text-3xl font-extrabold text-brand-dark-blue mb-2 capitalize">
+                            <h2 className="text-3xl font-extrabold text-[#1A237E] mb-2 capitalize">
                                 {isLogin ? `${role} Login` : `Create Admin Account`}
                             </h2>
                             <p className="text-gray-500 text-sm">
@@ -132,7 +132,7 @@ export default function Login() {
                                             <User className="absolute left-3 top-3 text-gray-400" size={18} />
                                             <input
                                                 type="text"
-                                                className="w-full border-b-2 border-gray-200 bg-gray-50/50 rounded-t-lg px-4 py-2.5 pl-10 focus:border-brand-blue focus:bg-white outline-none transition-colors"
+                                                className="w-full border-b-2 border-gray-200 bg-gray-50 rounded-t-lg px-4 py-2.5 pl-10 focus:border-[#1A237E] focus:bg-white outline-none transition-colors"
                                                 placeholder="John Doe"
                                                 value={name} onChange={(e) => setName(e.target.value)} required
                                             />
@@ -144,7 +144,7 @@ export default function Login() {
                                             <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Department</label>
                                             <input
                                                 type="text"
-                                                className="w-full border-b-2 border-gray-200 bg-gray-50/50 rounded-t-lg px-4 py-2.5 focus:border-brand-blue focus:bg-white outline-none transition-colors"
+                                                className="w-full border-b-2 border-gray-200 bg-gray-50 rounded-t-lg px-4 py-2.5 focus:border-[#1A237E] focus:bg-white outline-none transition-colors"
                                                 placeholder="CSE"
                                                 value={department} onChange={(e) => setDepartment(e.target.value)} required
                                             />
@@ -159,7 +159,7 @@ export default function Login() {
                                     <Mail className="absolute left-3 top-3 text-gray-400" size={18} />
                                     <input
                                         type="email"
-                                        className="w-full border-b-2 border-gray-200 bg-gray-50/50 rounded-t-lg px-4 py-2.5 pl-10 focus:border-brand-blue focus:bg-white outline-none transition-colors"
+                                        className="w-full border-b-2 border-gray-200 bg-gray-50 rounded-t-lg px-4 py-2.5 pl-10 focus:border-[#1A237E] focus:bg-white outline-none transition-colors"
                                         placeholder="student@kongu.edu"
                                         value={email} onChange={(e) => setEmail(e.target.value)} required
                                     />
@@ -172,7 +172,7 @@ export default function Login() {
                                     <Lock className="absolute left-3 top-3 text-gray-400" size={18} />
                                     <input
                                         type="password"
-                                        className="w-full border-b-2 border-gray-200 bg-gray-50/50 rounded-t-lg px-4 py-2.5 pl-10 focus:border-brand-blue focus:bg-white outline-none transition-colors"
+                                        className="w-full border-b-2 border-gray-200 bg-gray-50 rounded-t-lg px-4 py-2.5 pl-10 focus:border-[#1A237E] focus:bg-white outline-none transition-colors"
                                         placeholder="••••••••"
                                         value={password} onChange={(e) => setPassword(e.target.value)} required
                                     />
@@ -182,7 +182,7 @@ export default function Login() {
                             <div className="pt-4">
                                 <button
                                     type="submit"
-                                    className="w-full bg-accent-orange hover:bg-orange-600 text-white font-bold py-3.5 rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 transform active:scale-[0.99]"
+                                    className="w-full bg-[#00897B] hover:bg-[#00796B] text-white font-bold py-3.5 rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 transform active:scale-[0.99]"
                                 >
                                     {isLogin ? "Sign In" : "Create Account"} <ChevronRight size={18} />
                                 </button>
@@ -199,7 +199,7 @@ export default function Login() {
                                         if (!newMode) setRole("admin"); // Force admin on signup
                                         else setRole("student"); // Default to student on login
                                     }}
-                                    className="text-brand-blue font-bold hover:text-brand-green transition-colors"
+                                    className="text-[#1A237E] font-bold hover:text-[#283593] transition-colors"
                                 >
                                     {isLogin ? "Sign up now" : "Log in"}
                                 </button>

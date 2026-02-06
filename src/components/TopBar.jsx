@@ -16,11 +16,11 @@ export default function TopBar({ toggleSidebar }) {
     return (
         <div className="bg-white shadow-sm border-b border-gray-200 h-16 flex items-center justify-between px-4 md:px-8 sticky top-0 z-40 ml-0 md:ml-64 transition-all w-full md:w-[calc(100%-16rem)]">
             <div className="flex items-center gap-4">
-                <button onClick={toggleSidebar} className="md:hidden text-gray-500 hover:text-academic-blue">
+                <button onClick={toggleSidebar} className="md:hidden text-gray-500 hover:text-indigo-600">
                     <Menu size={24} />
                 </button>
                 <h2 className="text-lg font-semibold text-gray-700 hidden sm:block">
-                    Welcome, <span className="text-academic-blue">{currentUser.name}</span>
+                    Welcome, <span className="text-indigo-600">{currentUser.name}</span>
                 </h2>
             </div>
 

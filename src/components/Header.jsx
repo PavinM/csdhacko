@@ -30,15 +30,15 @@ export default function Header() {
                     {/* Text Branding - Adapted for Dark Mode */}
                     <div className="flex flex-col justify-center">
                         <h1 className="text-xl md:text-2xl font-extrabold tracking-wide leading-none flex flex-col md:block">
-                            <span className="text-kec-green">KONGU </span>
+                            <span className="text-emerald-400">KONGU </span>
                             <span className="text-white">ENGINEERING COLLEGE</span>
                         </h1>
                         <div className="flex items-center gap-2 mt-1">
-                            <span className="block h-[2px] w-8 bg-kec-light-blue rounded-full"></span>
-                            <p className="text-[10px] md:text-xs font-bold text-kec-light-blue tracking-[0.2em] uppercase shadow-black drop-shadow-sm">
+                            <span className="block h-[2px] w-8 bg-sky-400 rounded-full"></span>
+                            <p className="text-[10px] md:text-xs font-bold text-sky-300 tracking-[0.2em] uppercase shadow-black drop-shadow-sm">
                                 Transform Yourself
                             </p>
-                            <span className="block h-[2px] w-8 bg-kec-light-blue rounded-full"></span>
+                            <span className="block h-[2px] w-8 bg-sky-400 rounded-full"></span>
                         </div>
                     </div>
                 </div>

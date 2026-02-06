@@ -74,8 +74,8 @@ export default function Sidebar() {
                         key={item.path}
                         to={item.path}
                         className={`flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-300 group ${isActive(item.path)
-                                ? "bg-[#8cc63f] text-[#003366] shadow-lg font-bold translate-x-1"
-                                : "text-blue-100 hover:bg-white/10 hover:text-white"
+                            ? "bg-[#8cc63f] text-[#003366] shadow-lg font-bold translate-x-1"
+                            : "text-blue-100 hover:bg-white/10 hover:text-white"
                             }`}
                     >
                         <div className="flex items-center gap-3">
