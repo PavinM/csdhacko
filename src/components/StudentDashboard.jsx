@@ -1,27 +1,19 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/api"; // MERN API
-import { XCircle, FileText, Calendar } from "lucide-react";
+import { XCircle, FileText, Calendar, Plus, ChevronRight, BarChart2, BookOpen, ExternalLink, CheckCircle, Briefcase, Sparkles, Share2 } from "lucide-react";
+import FeedbackWizard from "./FeedbackWizard";
 
 export default function StudentDashboard() {
     const { currentUser } = useAuth();
     const [availableCompanies, setAvailableCompanies] = useState([]); // Companies open for feedback
     const [approvedFeedbacks, setApprovedFeedbacks] = useState([]); // All approved feedbacks (Global View)
     const [loading, setLoading] = useState(true);
-    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-    const [selectedCompany, setSelectedCompany] = useState(null);
-    const [viewFeedback, setViewFeedback] = useState(null); // Feedback object to view details
+    const [viewFeedback, setViewFeedback] = useState(null); // Local: Feedback object to view details
 
-    // Form State
-    const [formData, setFormData] = useState({
-        companyName: '',
-        jobRole: '',
-        driveDate: '',
-        overallExperience: '',
-        preparationTips: '',
-        rounds: [{ name: '', questions: '' }],
-        difficulty: 'Medium'
-    });
+    // Modal State (From Remote: Wizard Logic)
+    const [activeModal, setActiveModal] = useState(null); // 'feedback' | null
+    const [selectedCompany, setSelectedCompany] = useState(null);
 
     useEffect(() => {
         if (currentUser) {
@@ -32,7 +24,6 @@ export default function StudentDashboard() {
     const fetchDashboardData = async () => {
         try {
             // 1. Fetch Companies for "Give Feedback"
-            // Filter: Status 'completed' AND Student Email in 'eligibleStudents'
             const companyRes = await api.get('/companies');
             const eligible = companyRes.data.filter(c =>
                 c.status === 'completed' &&
@@ -50,39 +41,9 @@ export default function StudentDashboard() {
         setLoading(false);
     };
 
-    const handleAddRound = () => {
-        setFormData({ ...formData, rounds: [...formData.rounds, { name: "", questions: "" }] });
-    };
-
-    const handleRoundChange = (index, field, value) => {
-        const newRounds = [...formData.rounds];
-        newRounds[index][field] = value;
-        setFormData({ ...formData, rounds: newRounds });
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            await api.post('/feedback', {
-                ...formData,
-                department: currentUser.department
-            });
-            alert("Feedback submitted successfully! Waiting for approval.");
-            setShowFeedbackModal(false); // Changed from setShowForm to setShowFeedbackModal
-            setFormData({
-                companyName: '',
-                jobRole: '',
-                driveDate: '',
-                overallExperience: '',
-                preparationTips: '',
-                rounds: [{ name: '', questions: '' }],
-                difficulty: 'Medium'
-            });
-            fetchDashboardData(); // Refresh list
-        } catch (error) {
-            console.error("Error submitting feedback:", error);
-            alert("Failed to submit feedback.");
-        }
+    const handleGiveFeedback = (company) => {
+        setSelectedCompany(company.name);
+        setActiveModal('feedback');
     };
 
     if (loading) return <div className="flex justify-center py-20 text-gray-400">Loading your dashboard...</div>;
@@ -91,14 +52,11 @@ export default function StudentDashboard() {
         <div className="space-y-6 pb-10">
             {/* 1. Profile Banner */}
             <div className="bg-gradient-to-r from-indigo-900 to-sky-500 rounded-xl p-8 text-white shadow-lg flex justify-between items-center relative overflow-hidden">
-                {/* Background Pattern for Banner */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-
                 <div className="relative z-10">
                     <h1 className="text-4xl font-extrabold uppercase tracking-wide drop-shadow-sm">{currentUser?.name || "Student Name"}</h1>
                     <p className="text-blue-100 text-lg mt-2 font-light">{currentUser?.department || "Department Engineering"} Student</p>
                 </div>
-
                 <div className="relative z-10 hidden md:block">
                     <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-white border-4 border-white/30 backdrop-blur-sm">
                         <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
@@ -109,7 +67,7 @@ export default function StudentDashboard() {
             </div>
 
             <div className="grid grid-cols-1 gap-6">
-                {/* 2. Main Content: Help Juniors / Pending Feedbacks */}
+                {/* 2. Main Content */}
                 <div className="space-y-6">
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[400px]">
                         <div className="flex justify-between items-center mb-6">
@@ -117,7 +75,6 @@ export default function StudentDashboard() {
                                 <h2 className="text-xl font-bold text-slate-800">Help Your Juniors Grow!</h2>
                                 <p className="text-sm text-slate-500 font-medium">Pending feedback reviews</p>
                             </div>
-
                         </div>
 
                         <div className="space-y-4">
@@ -144,16 +101,7 @@ export default function StudentDashboard() {
                                                     </div>
                                                 </div>
                                                 <button
-                                                    onClick={() => {
-                                                        setSelectedCompany(company);
-                                                        setFormData({
-                                                            ...formData,
-                                                            companyName: company.name,
-                                                            jobRole: company.roles,
-                                                            driveDate: company.visitDate
-                                                        });
-                                                        setShowFeedbackModal(true);
-                                                    }}
+                                                    onClick={() => handleGiveFeedback(company)}
                                                     className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md transition transform active:scale-95"
                                                 >
                                                     Give Feedback
@@ -164,7 +112,7 @@ export default function StudentDashboard() {
                                 )}
                             </div>
 
-                            {/* 2. Global Approved Feedbacks (Read Only) */}
+                            {/* 2. Global Approved Feedbacks (Read Only - Local Improved UI) */}
                             <div className="pt-6 border-t border-slate-100">
                                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">Latest Student Experiences</h3>
                                 {approvedFeedbacks.length === 0 ? (
@@ -204,11 +152,9 @@ export default function StudentDashboard() {
                         </div>
                     </div>
                 </div>
-
-
             </div>
 
-            {/* Feedback Details Modal */}
+            {/* Feedback Details Modal (Local Feature) */}
             {viewFeedback && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col animate-fade-in-up">
@@ -281,102 +227,19 @@ export default function StudentDashboard() {
                 </div>
             )}
 
-            {/* Submission Form Modal (Overlay) */}
-            {showFeedbackModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-8 relative animate-fade-in-up">
-                        <button
-                            onClick={() => setShowFeedbackModal(false)}
-                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-                        >
-                            <XCircle size={24} />
-                        </button>
-
-                        <div className="flex items-center gap-3 mb-8 pb-4 border-b border-gray-100">
-                            <div className="p-2 bg-blue-50 rounded-lg text-academic-blue">
-                                <FileText size={24} />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-800">Submit Feedback: {selectedCompany?.name}</h2>
-                                <p className="text-xs text-gray-500">Share your experience to help juniors</p>
-                            </div>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Company Name</label>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Company Name</label>
-                                    <input type="text" className="w-full border border-gray-200 bg-gray-100 text-gray-500 rounded-lg p-3 focus:ring-0 outline-none cursor-not-allowed"
-                                        value={formData.companyName} readOnly />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Drive Date</label>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Drive Date</label>
-                                    <input type="date" className="w-full border border-gray-200 bg-gray-100 text-gray-500 rounded-lg p-3 focus:ring-0 outline-none cursor-not-allowed"
-                                        value={formData.driveDate} readOnly />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Job Role</label>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Job Role</label>
-                                    <input type="text" className="w-full border border-gray-200 bg-gray-50 rounded-lg p-3 focus:ring-2 focus:ring-academic-teal outline-none transition"
-                                        value={formData.jobRole} onChange={e => setFormData({ ...formData, jobRole: e.target.value })} required placeholder="e.g. Developer" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Difficulty</label>
-                                    <select className="w-full border border-gray-200 bg-gray-50 rounded-lg p-3 focus:ring-2 focus:ring-academic-teal outline-none transition"
-                                        value={formData.difficulty} onChange={e => setFormData({ ...formData, difficulty: e.target.value })}>
-                                        <option>Easy</option>
-                                        <option>Medium</option>
-                                        <option>Hard</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="bg-blue-50/50 p-6 rounded-xl border border-blue-100">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-sm font-bold text-academic-blue uppercase tracking-wide">Interview Rounds</h3>
-                                    <button type="button" onClick={handleAddRound} className="text-xs font-bold text-academic-teal hover:underline">+ Add Round</button>
-                                </div>
-                                <div className="space-y-4">
-                                    {formData.rounds.map((round, index) => (
-                                        <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <div className="md:col-span-1">
-                                                <input type="text" placeholder="Round Name" className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-academic-blue outline-none"
-                                                    value={round.name} onChange={e => handleRoundChange(index, 'name', e.target.value)} required />
-                                            </div>
-                                            <div className="md:col-span-2">
-                                                <textarea placeholder="Questions asked..." className="w-full border border-gray-200 rounded-lg p-3 text-sm h-[46px] min-h-[46px] focus:h-20 transition-all focus:border-academic-blue outline-none resize-none"
-                                                    value={round.questions} onChange={e => handleRoundChange(index, 'questions', e.target.value)} required />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Overall Experience</label>
-                                    <textarea className="w-full border border-gray-200 bg-gray-50 rounded-lg p-4 h-32 focus:ring-2 focus:ring-academic-teal outline-none transition"
-                                        placeholder="Describe the overall process..."
-                                        value={formData.overallExperience} onChange={e => setFormData({ ...formData, overallExperience: e.target.value })} required />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Preparation Tips</label>
-                                    <textarea className="w-full border border-gray-200 bg-gray-50 rounded-lg p-4 h-32 focus:ring-2 focus:ring-academic-teal outline-none transition"
-                                        placeholder="Advice for juniors..."
-                                        value={formData.preparationTips} onChange={e => setFormData({ ...formData, preparationTips: e.target.value })} required />
-                                </div>
-                            </div>
-
-                            <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
-                                <button type="button" onClick={() => setShowFeedbackModal(false)} className="px-6 py-2.5 text-gray-500 font-semibold hover:bg-gray-50 rounded-lg transition">Cancel</button>
-                                <button type="submit" className="px-8 py-2.5 bg-academic-blue hover:bg-blue-900 text-white font-bold rounded-lg shadow-lg transform active:scale-95 transition">Submit Application</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+            {/* Wizard Modal (Remote Feature - Replacing Local Inline Form) */}
+            {activeModal === 'feedback' && (
+                <FeedbackWizard
+                    currentUser={currentUser}
+                    initialCompany={selectedCompany}
+                    onClose={() => setActiveModal(null)}
+                    onSuccess={() => {
+                        setActiveModal(null);
+                        fetchDashboardData();
+                    }}
+                />
             )}
         </div>
     );
 }
+

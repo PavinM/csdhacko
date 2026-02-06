@@ -53,6 +53,7 @@ function Layout({ children }) {
     <div className="min-h-screen bg-academic-gray flex">
       {currentUser && <Sidebar mobileOpen={sidebarOpen} />}
       <div className="flex-1 flex flex-col min-w-0 transition-all md:pl-72">
+        {/* TopBar removed as requested */}
         <main className="flex-1 p-6 overflow-y-auto">
           {children}
         </main>

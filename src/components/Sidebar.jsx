@@ -113,6 +113,8 @@ export default function Sidebar() {
                 ))}
             </nav>
 
+
+
             {/* Footer / Copyright */}
             <div className="p-4 border-t border-white/5 space-y-4">
                 <button

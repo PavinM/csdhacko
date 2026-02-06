@@ -53,7 +53,7 @@ export function AuthProvider({ children }) {
             return true;
         } catch (error) {
             console.error("Login Error:", error.response?.data?.message || error.message);
-            alert("DEBUG: Login API Failed: " + (error.response?.data?.message || error.message));
+            // alert("DEBUG: Login API Failed: " + (error.response?.data?.message || error.message));
             throw new Error(error.response?.data?.message || "Invalid email or password");
         } finally {
             setLoading(false);
@@ -78,6 +78,26 @@ export function AuthProvider({ children }) {
         } catch (error) {
             console.error("Signup Error:", error.response?.data?.message || error.message);
             throw new Error(error.response?.data?.message || "Failed to create account");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Google Login Function
+    const googleLogin = async (token) => {
+        setLoading(true);
+        try {
+            const { data } = await api.post('/auth/google', { token });
+            console.log("AuthContext: Google Login success", data);
+
+            setCurrentUser(data);
+            setUserRole(data.role);
+            localStorage.setItem("user", JSON.stringify(data));
+
+            return true;
+        } catch (error) {
+            console.error("Google Login Error:", error.response?.data?.message || error.message);
+            throw new Error(error.response?.data?.message || "Google Sign-In failed");
         } finally {
             setLoading(false);
         }
@@ -116,6 +136,7 @@ export function AuthProvider({ children }) {
         loading,
         login,
         signup,
+        googleLogin,
         createUser,
         logout
     };
