@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useState } from "react";
 import Login from "./components/Login";
@@ -9,6 +9,7 @@ import StudentManagement from "./components/StudentManagement";
 import CoordinatorFeedback from "./components/CoordinatorFeedback";
 import AdminDashboard from "./components/AdminDashboard";
 import StudentFeedbackView from "./components/StudentFeedbackView";
+import CoordinatorResources from "./components/CoordinatorResources";
 
 function PrivateRoute({ children, allowedRoles }) {
   const { currentUser, userRole, loading } = useAuth();
@@ -17,24 +18,17 @@ function PrivateRoute({ children, allowedRoles }) {
 
   if (!currentUser) {
     console.log("PrivateRoute: No currentUser");
-    // SHOW DEBUG SCREEN
-    return (
-      <div className="flex h-screen items-center justify-center bg-red-100 flex-col gap-4">
-        <h1 className="text-3xl font-bold text-red-800">Access Error: No User Found</h1>
-        <p className="text-lg">PrivateRoute could not find 'currentUser' in AuthContext.</p>
-        <p className="text-sm text-gray-600">Redirecting to login in 5 seconds...</p>
-        {/* Self-redirect after delay */}
-        <meta httpEquiv="refresh" content="5;url=/login" />
-      </div>
-    );
+    return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(userRole)) {
+  // Case-insensitive role check
+  if (allowedRoles && !allowedRoles.map(r => r.toLowerCase()).includes(userRole?.toLowerCase())) {
     return (
       <div className="flex h-screen items-center justify-center bg-yellow-100 flex-col gap-4">
         <h1 className="text-3xl font-bold text-yellow-800">Access Denied: Role Mismatch</h1>
         <p className="text-lg">Your Role: <strong>{userRole}</strong></p>
         <p className="text-lg">Allowed Roles: <strong>{allowedRoles.join(', ')}</strong></p>
+        <Link to="/login" className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700">Back to Login</Link>
       </div>
     );
   }
@@ -117,6 +111,12 @@ function App() {
             <Route path="/coordinator/feedback" element={
               <PrivateRoute allowedRoles={['coordinator', 'admin']}>
                 <CoordinatorFeedback />
+              </PrivateRoute>
+            } />
+
+            <Route path="/coordinator/resources" element={
+              <PrivateRoute allowedRoles={['coordinator', 'admin']}>
+                <CoordinatorResources />
               </PrivateRoute>
             } />
 

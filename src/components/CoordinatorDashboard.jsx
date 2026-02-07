@@ -75,7 +75,7 @@ export default function CoordinatorDashboard() {
         setLoading(false);
     };
 
-    if (loading) return <div className="p-8 text-center text-gray-500">Loading dashboard...</div>;
+    if (loading) return <div className="flex items-center justify-center h-screen text-slate-500 gap-2"><div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>Loading dashboard...</div>;
 
     return (
         <div className="space-y-8">
@@ -105,45 +105,10 @@ export default function CoordinatorDashboard() {
 
             {/* 2. Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Reviews</p>
-                        <h3 className="text-3xl font-bold text-amber-500 mt-1">{stats.pendingFeedback}</h3>
-                    </div>
-                    <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
-                        <Star size={24} />
-                    </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Feedbacks</p>
-                        <h3 className="text-3xl font-bold text-[#1A237E] mt-1">{stats.totalFeedback}</h3>
-                    </div>
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-[#1A237E]">
-                        <FileCheck size={24} />
-                    </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Approved</p>
-                        <h3 className="text-3xl font-bold text-[#00897B] mt-1">{stats.approved}</h3>
-                    </div>
-                    <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center text-[#00897B]">
-                        <CheckIcon size={24} />
-                    </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Companies</p>
-                        <h3 className="text-3xl font-bold text-indigo-900 mt-1">{stats.companies}</h3>
-                    </div>
-                    <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-900">
-                        <BarChart2 size={24} />
-                    </div>
-                </div>
+                <StatCard title="Pending Reviews" value={stats.pendingFeedback} icon={<Star size={24} />} color="amber" />
+                <StatCard title="Total Feedbacks" value={stats.totalFeedback} icon={<FileCheck size={24} />} color="blue" />
+                <StatCard title="Approved" value={stats.approved} icon={<CheckIcon size={24} />} color="teal" />
+                <StatCard title="Active Companies" value={stats.companies} icon={<BarChart2 size={24} />} color="indigo" />
             </div>
 
             {/* 3. Recent Activity / Quick View */}
@@ -294,7 +259,28 @@ export default function CoordinatorDashboard() {
     );
 }
 
-// Icon helper since I missed importing it above
+// Sub-components
+function StatCard({ title, value, icon, color }) {
+    const colorClasses = {
+        amber: 'bg-amber-50 text-amber-500',
+        blue: 'bg-blue-50 text-blue-600',
+        teal: 'bg-teal-50 text-teal-600',
+        indigo: 'bg-indigo-50 text-indigo-600'
+    };
+
+    return (
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between transition-transform hover:-translate-y-1">
+            <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{title}</p>
+                <h3 className={`text-3xl font-bold mt-1 text-slate-800`}>{value}</h3>
+            </div>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClasses[color]}`}>
+                {icon}
+            </div>
+        </div>
+    );
+}
+
 function CheckIcon({ size }) {
     return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
 }

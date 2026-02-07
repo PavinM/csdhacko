@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, CheckCircle, FileText, Briefcase, Calendar, Layers, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle, FileText, Briefcase, Calendar, Layers, Check, Paperclip, Link as LinkIcon, Upload, X, Loader } from 'lucide-react';
 import api from '../lib/api'; // MERN API
 
 export default function FeedbackWizard({ currentUser, onClose, onSuccess, initialCompany = '', initialPackage = '' }) {
@@ -129,6 +129,41 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
         } finally {
             setLoading(false);
         }
+    };
+
+    // File Upload Handler
+    const handleFileUpload = async (e, roundIndex) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const uploadData = new FormData();
+        uploadData.append('file', file);
+
+        try {
+            // Show some loading indicator if needed
+            const { data } = await api.post('/upload', uploadData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            // Append to resources
+            const currentResources = formData.rounds[roundIndex].resources || '';
+            const newEntry = `\n[File] ${data.name}: ${api.defaults.baseURL}${data.url}`;
+            handleRoundChange(roundIndex, 'resources', currentResources + newEntry);
+
+        } catch (error) {
+            console.error("Upload failed", error);
+            alert("File upload failed");
+        }
+    };
+
+    const addLink = (roundIndex) => {
+        const url = prompt("Enter Resource URL:");
+        if (!url) return;
+        const title = prompt("Enter Title (Optional):") || "Link";
+
+        const currentResources = formData.rounds[roundIndex].resources || '';
+        const newEntry = `\n[Link] ${title}: ${url}`;
+        handleRoundChange(roundIndex, 'resources', currentResources + newEntry);
     };
 
     const totalSteps = 2 + formData.rounds.length; // 1 (Intro) + Rounds + 1 (Review)
@@ -359,14 +394,29 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
 
                                     <div className="md:col-span-2">
                                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-2">
-                                            <Layers size={14} /> Share Resources
+                                            <Layers size={14} /> Share Resources (Files & Links)
                                         </label>
+
+                                        <div className="flex gap-2 mb-2">
+                                            <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition">
+                                                <Upload size={14} /> Upload File
+                                                <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, roundIndex)} accept=".pdf,.doc,.docx,.png,.jpg" />
+                                            </label>
+                                            <button
+                                                onClick={() => addLink(roundIndex)}
+                                                className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition"
+                                            >
+                                                <LinkIcon size={14} /> Add Link
+                                            </button>
+                                        </div>
+
                                         <textarea
-                                            className="w-full border border-slate-200 bg-slate-50/50 rounded-xl p-3.5 h-24 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-700 resize-none"
+                                            className="w-full border border-slate-200 bg-slate-50/50 rounded-xl p-3.5 h-24 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-700 resize-none font-mono text-sm"
                                             value={formData.rounds[roundIndex]?.resources}
                                             onChange={(e) => handleRoundChange(roundIndex, 'resources', e.target.value)}
-                                            placeholder="Paste links to study materials, drive folders, or book references relevant to this round..."
+                                            placeholder="Resources will appear here. You can also type manually..."
                                         />
+                                        <p className="text-[10px] text-slate-400 mt-1">Supported: PDF, Docs, Images. Files are securely stored.</p>
                                     </div>
                                 </div>
 

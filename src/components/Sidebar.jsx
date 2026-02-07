@@ -56,6 +56,12 @@ export default function Sidebar() {
             icon: FileText
         },
         {
+            role: 'coordinator',
+            label: 'Shared Resources',
+            path: '/coordinator/resources',
+            icon: CheckSquare
+        },
+        {
             role: 'admin',
             label: 'System Admin',
             path: '/admin',
@@ -92,7 +98,7 @@ export default function Sidebar() {
             <div className="px-6 py-6 border-b border-white/5 mx-2">
                 <p className="text-xs font-semibold text-blue-300 uppercase mb-1">Welcome Back,</p>
                 <h2 className="text-lg font-bold text-white truncate">{currentUser.name}</h2>
-                <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-[#8cc63f]/20 text-[#8cc63f] capitalize border border-[#8cc63f]/30">
+                <span className="inline-block mt-1 px-3 py-1 rounded-md text-xs font-bold bg-[#8cc63f]/20 text-[#8cc63f] capitalize border border-[#8cc63f]/30 tracking-wide">
                     {userRole}
                 </span>
             </div>
