@@ -2,6 +2,7 @@ import express from 'express';
 import asyncHandler from 'express-async-handler';
 import User from '../models/User.js';
 import { protect, admin, coordinator } from '../middleware/authMiddleware.js';
+import { SOFTWARE_DEPTS, HARDWARE_DEPTS } from '../utils/studentParser.js';
 
 const router = express.Router();
 
@@ -10,10 +11,27 @@ const router = express.Router();
 // @access  Private/Coordinator/Admin
 router.get('/', protect, coordinator, asyncHandler(async (req, res) => {
     // Basic filtering
-    const keyword = req.query.role ? { role: req.query.role } : {};
-    const deptFilter = req.query.department ? { department: req.query.department } : {};
 
-    const users = await User.find({ ...keyword, ...deptFilter }).select('-password');
+    const keyword = req.query.role ? { role: req.query.role } : {};
+
+    let filter = {};
+    if (req.query.domainType) {
+        const targetDepts = req.query.domainType === 'Software' ? SOFTWARE_DEPTS : HARDWARE_DEPTS;
+
+        // Filter by EITHER:
+        // 1. Department is in the allowed list (Inferred)
+        // 2. OR Domain field explicitly matches (Explicit)
+        filter = {
+            $or: [
+                { department: { $in: targetDepts } },
+                { domain: req.query.domainType }
+            ]
+        };
+    } else if (req.query.department) {
+        filter = { department: req.query.department };
+    }
+
+    const users = await User.find({ ...keyword, ...filter }).select('-password');
     res.json(users);
 }));
 
@@ -21,7 +39,7 @@ router.get('/', protect, coordinator, asyncHandler(async (req, res) => {
 // @route   POST /api/users
 // @access  Private/Coordinator
 router.post('/', protect, coordinator, asyncHandler(async (req, res) => {
-    const { name, email, password, role, department, rollNo, section, year, dob } = req.body;
+    const { name, email, password, role, department, rollNo, section, year, dob, batch, domain, tenthMark, twelfthMark, cgpa } = req.body;
 
     const userExists = await User.findOne({ email });
 
@@ -39,7 +57,12 @@ router.post('/', protect, coordinator, asyncHandler(async (req, res) => {
         rollNo,
         section,
         year,
-        dob
+        dob,
+        batch,
+        domain,
+        tenthMark,
+        twelfthMark,
+        cgpa
     });
 
     if (user) {

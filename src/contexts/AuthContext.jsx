@@ -31,38 +31,34 @@ export function AuthProvider({ children }) {
 
     // Login Function
     const login = async (email, password) => {
-        setLoading(true);
+        // setLoading(true); // REMOVED: Prevent app unmount
         console.log("AuthContext: Attempting login for", email);
-        alert("DEBUG: Starting login process...");
         try {
             const { data } = await api.post('/auth/login', { email, password });
             console.log("AuthContext: Login success, received data:", data);
-            alert("DEBUG: API Success! Data Received: " + JSON.stringify(data).substring(0, 100));
 
             // Data should contain user info + token
             setCurrentUser(data);
-            setUserRole(data.role);
-            localStorage.setItem("user", JSON.stringify(data));
-
-            // Verify immediate storage
-            const check = localStorage.getItem("user");
-            alert("DEBUG: Verify Storage: " + (check ? "SAVED OK" : "SAVE FAILED"));
+            // Normalize role to lowercase to prevent case-sensitivity issues in routing
+            const safeRole = data.role ? data.role.toLowerCase() : 'student';
+            setUserRole(safeRole);
+            const storedData = { ...data, role: safeRole };
+            localStorage.setItem("user", JSON.stringify(storedData));
 
             console.log("AuthContext: State updated. Role:", data.role);
 
-            return true;
+            // Return queryable data for immediate usage
+            return data;
         } catch (error) {
             console.error("Login Error:", error.response?.data?.message || error.message);
-            // alert("DEBUG: Login API Failed: " + (error.response?.data?.message || error.message));
             throw new Error(error.response?.data?.message || "Invalid email or password");
-        } finally {
-            setLoading(false);
         }
+        // finally { setLoading(false); } // REMOVED
     };
 
     // Signup Function (Public Registration)
     const signup = async (email, password, additionalData) => {
-        setLoading(true);
+        // setLoading(true); // REMOVED
         try {
             const { data } = await api.post('/auth/register', {
                 email,
@@ -78,14 +74,13 @@ export function AuthProvider({ children }) {
         } catch (error) {
             console.error("Signup Error:", error.response?.data?.message || error.message);
             throw new Error(error.response?.data?.message || "Failed to create account");
-        } finally {
-            setLoading(false);
         }
+        // finally { setLoading(false); } // REMOVED
     };
 
     // Google Login Function
     const googleLogin = async (token) => {
-        setLoading(true);
+        // setLoading(true); // REMOVED
         try {
             const { data } = await api.post('/auth/google', { token });
             console.log("AuthContext: Google Login success", data);
@@ -98,14 +93,13 @@ export function AuthProvider({ children }) {
         } catch (error) {
             console.error("Google Login Error:", error.response?.data?.message || error.message);
             throw new Error(error.response?.data?.message || "Google Sign-In failed");
-        } finally {
-            setLoading(false);
         }
+        // finally { setLoading(false); } // REMOVED
     };
 
     // Create User (Admin/Coordinator feature - adds student/user without logging in)
     const createUser = async (email, password, additionalData) => {
-        setLoading(true);
+        // setLoading(true); // REMOVED
         try {
             // This endpoint is protected, axios interceptor will handle token
             await api.post('/users', {
@@ -117,9 +111,8 @@ export function AuthProvider({ children }) {
         } catch (error) {
             console.error("Create User Error:", error.response?.data?.message || error.message);
             throw new Error(error.response?.data?.message || "Failed to create user");
-        } finally {
-            setLoading(false);
         }
+        // finally { setLoading(false); } // REMOVED
     };
 
     // Logout Function
@@ -127,7 +120,6 @@ export function AuthProvider({ children }) {
         setCurrentUser(null);
         setUserRole(null);
         localStorage.removeItem("user");
-        // Optional: Call API to invalidate token if using server-side sessions
     };
 
     const value = {

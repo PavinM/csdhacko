@@ -20,6 +20,7 @@ export default function AdminDashboard() {
     const [isCreating, setIsCreating] = useState(false);
     const [isAddingCompany, setIsAddingCompany] = useState(false);
     const [isBulkUploading, setIsBulkUploading] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
     const [newUser, setNewUser] = useState({ name: '', email: '', password: '', department: '' });
 
     // New Company Form State
@@ -158,10 +159,10 @@ export default function AdminDashboard() {
     if (loading) return <div className="p-8 text-center text-gray-500">Loading system data...</div>;
 
     const stats = [
-        { label: 'Pending Approvals', value: dashboardData.pendingFeedback, icon: Star, color: 'bg-amber-500' },
-        { label: 'Total Feedbacks', value: dashboardData.totalFeedback, icon: FileCheck, color: 'bg-indigo-600' },
-        { label: 'System Users', value: users.length, icon: Users, color: 'bg-sky-500' },
-        { label: 'Active Drives', value: dashboardData.companies, icon: BarChart2, color: 'bg-teal-500' },
+        { label: 'Pending Approvals', value: dashboardData.pendingFeedback, icon: Star, iconColor: 'text-amber-500', bgColor: 'bg-amber-500/10' },
+        { label: 'Total Feedbacks', value: dashboardData.totalFeedback, icon: FileCheck, iconColor: 'text-indigo-600', bgColor: 'bg-indigo-600/10' },
+        { label: 'System Users', value: users.length, icon: Users, iconColor: 'text-sky-500', bgColor: 'bg-sky-500/10' },
+        { label: 'Active Drives', value: dashboardData.companies, icon: BarChart2, iconColor: 'text-teal-500', bgColor: 'bg-teal-500/10' },
     ];
 
     return (
@@ -444,8 +445,8 @@ export default function AdminDashboard() {
                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{stat.label}</p>
                             <h3 className="text-3xl font-bold text-indigo-900 my-1">{stat.value}</h3>
                         </div>
-                        <div className={`w-12 h-12 rounded-xl ${stat.color} bg-opacity-10 flex items-center justify-center`}>
-                            <stat.icon size={24} className={stat.color.replace('bg-', 'text-')} />
+                        <div className={`w-12 h-12 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
+                            <stat.icon size={24} className={stat.iconColor} />
                         </div>
                     </div>
                 ))}
@@ -484,7 +485,7 @@ export default function AdminDashboard() {
                             <thead className="bg-slate-50 text-slate-500 uppercase text-xs font-bold tracking-wider">
                                 <tr>
                                     <th className="p-4">Company</th>
-                                    <th className="p-4">Department</th>
+                                    <th className="p-4">Domain</th>
                                     <th className="p-4">Date</th>
                                     <th className="p-4">Eligibility</th>
                                     <th className="p-4">Status</th>
@@ -494,7 +495,14 @@ export default function AdminDashboard() {
                                 {companiesList.map(company => (
                                     <tr key={company._id} className="hover:bg-slate-50">
                                         <td className="p-4 font-bold text-indigo-900">{company.name}</td>
-                                        <td className="p-4 text-sm text-slate-600">{company.department}</td>
+                                        <td className="p-4 text-sm text-slate-600">
+                                            <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${company.domain === 'Hardware' ? 'bg-orange-100 text-orange-700' :
+                                                company.domain === 'Software' ? 'bg-blue-100 text-blue-700' :
+                                                    'bg-purple-100 text-purple-700'
+                                                }`}>
+                                                {company.domain || 'Both'}
+                                            </span>
+                                        </td>
                                         <td className="p-4 text-sm text-slate-500">{company.visitDate}</td>
                                         <td className="p-4">
                                             <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">
@@ -527,7 +535,13 @@ export default function AdminDashboard() {
                     </div>
                     <div className="bg-slate-50 border border-slate-200 rounded-lg flex items-center px-3 py-2 w-64">
                         <Search size={16} className="text-slate-400 mr-2" />
-                        <input type="text" placeholder="Search users..." className="bg-transparent border-none outline-none text-sm w-full font-medium" />
+                        <input
+                            type="text"
+                            placeholder="Search users..."
+                            className="bg-transparent border-none outline-none text-sm w-full font-medium"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
                     </div>
                 </div>
 
@@ -543,44 +557,58 @@ export default function AdminDashboard() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
-                            {users.map(user => (
-                                <tr key={user._id} className="hover:bg-slate-50 transition-colors">
-                                    <td className="p-5">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-sky-50 flex items-center justify-center text-xs font-bold text-sky-600 border border-sky-100">
-                                                {user.name.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-semibold text-slate-900">{user.name}</p>
-                                                <p className="text-xs text-slate-500">{user.email}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-5">
-                                        <span className={`px-2.5 py-1 rounded text-xs font-bold uppercase ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
-                                            user.role === 'coordinator' ? 'bg-teal-100 text-teal-700' :
-                                                'bg-sky-100 text-sky-700'
-                                            }`}>
-                                            {user.role}
-                                        </span>
-                                    </td>
-                                    <td className="p-5 text-sm text-slate-600 font-medium">{user.department || 'N/A'}</td>
-                                    <td className="p-5">
-                                        <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded w-fit">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Active
-                                        </span>
-                                    </td>
-                                    <td className="p-5 text-right">
-                                        <button
-                                            onClick={() => handleDeleteUser(user._id)}
-                                            className="text-slate-400 hover:text-red-600 transition p-2 hover:bg-red-50 rounded-full"
-                                            title="Delete User"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
+                            {users.filter(user =>
+                                user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                user.email.toLowerCase().includes(searchQuery.toLowerCase())
+                            ).length === 0 ? (
+                                <tr>
+                                    <td colSpan="5" className="p-8 text-center text-slate-500">
+                                        No matches found for "{searchQuery}"
                                     </td>
                                 </tr>
-                            ))}
+                            ) : (
+                                users.filter(user =>
+                                    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                    user.email.toLowerCase().includes(searchQuery.toLowerCase())
+                                ).map(user => (
+                                    <tr key={user._id} className="hover:bg-slate-50 transition-colors">
+                                        <td className="p-5">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-sky-50 flex items-center justify-center text-xs font-bold text-sky-600 border border-sky-100">
+                                                    {user.name.charAt(0)}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-slate-900">{user.name}</p>
+                                                    <p className="text-xs text-slate-500">{user.email}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="p-5">
+                                            <span className={`px-2.5 py-1 rounded text-xs font-bold uppercase ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                                                user.role === 'coordinator' ? 'bg-teal-100 text-teal-700' :
+                                                    'bg-sky-100 text-sky-700'
+                                                }`}>
+                                                {user.role}
+                                            </span>
+                                        </td>
+                                        <td className="p-5 text-sm text-slate-600 font-medium">{user.department || 'N/A'}</td>
+                                        <td className="p-5">
+                                            <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded w-fit">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Active
+                                            </span>
+                                        </td>
+                                        <td className="p-5 text-right">
+                                            <button
+                                                onClick={() => handleDeleteUser(user._id)}
+                                                className="text-slate-400 hover:text-red-600 transition p-2 hover:bg-red-50 rounded-full"
+                                                title="Delete User"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>

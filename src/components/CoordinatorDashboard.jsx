@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/api"; // MERN API
-import { Users, FileCheck, Building, BarChart2, Star } from "lucide-react";
+
+import { Users, FileCheck, Building, BarChart2, Star, Sparkles } from "lucide-react";
+import { getDomainFromDept } from "../utils/studentUtils";
+import AssignStudentsModal from "./AssignStudentsModal"; // Added Modal Import
 
 export default function CoordinatorDashboard() {
     const { currentUser } = useAuth();
@@ -12,6 +15,11 @@ export default function CoordinatorDashboard() {
         approved: 0
     });
     const [loading, setLoading] = useState(true);
+    const [recentCompanies, setRecentCompanies] = useState([]); // Store filtered companies for display
+    const [pendingAssignment, setPendingAssignment] = useState([]); // Action item: Drives waiting for student assignment
+
+    const [activeModal, setActiveModal] = useState(null); // 'assign' | null
+    const [selectedAssignmentDrive, setSelectedAssignmentDrive] = useState(null);
 
     useEffect(() => {
         if (currentUser) {
@@ -21,18 +29,45 @@ export default function CoordinatorDashboard() {
 
     const fetchStats = async () => {
         try {
-            // Fetch all feedback for this department
-            const { data: feedbacks } = await api.get(`/feedback?department=${currentUser.department}`);
+            // Determine Domain
+            const userDomain = getDomainFromDept(currentUser.department);
+            console.log("Coordinator Domain:", userDomain);
 
-            // In a real app, /companies endpoint should be used, but for now logic is preserved
-            const uniqueCompanies = new Set(feedbacks.map(f => f.companyName)).size;
+            // Fetch feedback for this DOMAIN (or department if Both/Unknown)
+            let query = `?department=${currentUser.department}`; // Default fallback
+            if (userDomain !== 'Both') {
+                query = `?domainType=${userDomain}`;
+            }
+
+            const { data: feedbacks } = await api.get(`/feedback${query}`);
+
+            // Fetch Companies for this Domain
+            // Since we don't have a direct "count companies by domain" endpoint yet (unless we filter client side or add one),
+            // we can fetch all companies and filter client side for now.
+            const { data: allCompanies } = await api.get('/companies');
+            const domainCompanies = allCompanies.filter(c => {
+                // Treats missing domain as 'Both' (Legacy support)
+                if (!c.domain || c.domain === 'Both') return true;
+                return c.domain === userDomain;
+            });
+
+            const uniqueCompaniesCount = domainCompanies.length;
 
             setStats({
                 pendingFeedback: feedbacks.filter(f => f.status === 'pending').length,
                 totalFeedback: feedbacks.length,
                 approved: feedbacks.filter(f => f.status === 'approved').length,
-                companies: uniqueCompanies
+                companies: uniqueCompaniesCount,
+                domain: userDomain // Store for display
             });
+
+            // Store the companies for the list view
+            setRecentCompanies(domainCompanies.slice(0, 5)); // Show top 5 recent
+
+            // Filter for Drives that might need assignment (e.g., recently added or scheduled)
+            // For now, we list all 'Scheduled' ones as "Pending Assignment/Verification"
+            const dueForAssignment = domainCompanies.filter(c => c.status === 'scheduled');
+            setPendingAssignment(dueForAssignment);
 
         } catch (error) {
             console.error("Error fetching stats:", error);
@@ -40,7 +75,7 @@ export default function CoordinatorDashboard() {
         setLoading(false);
     };
 
-    if (loading) return <div className="p-8 text-center text-gray-500">Loading dashboard...</div>;
+    if (loading) return <div className="flex items-center justify-center h-screen text-slate-500 gap-2"><div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>Loading dashboard...</div>;
 
     return (
         <div className="space-y-8">
@@ -51,7 +86,14 @@ export default function CoordinatorDashboard() {
 
                 <div className="relative z-10">
                     <h1 className="text-3xl font-extrabold uppercase tracking-wide drop-shadow-sm">Welcome, {currentUser?.name || "Coordinator"}</h1>
-                    <p className="text-blue-100 text-lg mt-2 font-light">Department of {currentUser?.department}</p>
+                    <div className="flex items-center gap-3 mt-2">
+                        <p className="text-blue-100 text-lg font-light">Department of {currentUser?.department}</p>
+                        {stats.domain && (
+                            <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-bold backdrop-blur-sm border border-white/10 flex items-center gap-1">
+                                <Sparkles size={14} /> {stats.domain} Domain
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 <div className="relative z-10 hidden md:block">
@@ -63,45 +105,10 @@ export default function CoordinatorDashboard() {
 
             {/* 2. Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Reviews</p>
-                        <h3 className="text-3xl font-bold text-amber-500 mt-1">{stats.pendingFeedback}</h3>
-                    </div>
-                    <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
-                        <Star size={24} />
-                    </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Feedbacks</p>
-                        <h3 className="text-3xl font-bold text-[#1A237E] mt-1">{stats.totalFeedback}</h3>
-                    </div>
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-[#1A237E]">
-                        <FileCheck size={24} />
-                    </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Approved</p>
-                        <h3 className="text-3xl font-bold text-[#00897B] mt-1">{stats.approved}</h3>
-                    </div>
-                    <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center text-[#00897B]">
-                        <CheckIcon size={24} />
-                    </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Companies</p>
-                        <h3 className="text-3xl font-bold text-indigo-900 mt-1">{stats.companies}</h3>
-                    </div>
-                    <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-900">
-                        <BarChart2 size={24} />
-                    </div>
-                </div>
+                <StatCard title="Pending Reviews" value={stats.pendingFeedback} icon={<Star size={24} />} color="amber" />
+                <StatCard title="Total Feedbacks" value={stats.totalFeedback} icon={<FileCheck size={24} />} color="blue" />
+                <StatCard title="Approved" value={stats.approved} icon={<CheckIcon size={24} />} color="teal" />
+                <StatCard title="Active Companies" value={stats.companies} icon={<BarChart2 size={24} />} color="indigo" />
             </div>
 
             {/* 3. Recent Activity / Quick View */}
@@ -114,7 +121,75 @@ export default function CoordinatorDashboard() {
                         <h3 className="font-bold text-[#1A237E]">Action Required</h3>
                     </div>
 
-                    {stats.pendingFeedback > 0 ? (
+                    {pendingAssignment.length > 0 ? (
+                        <div className="space-y-4">
+                            {pendingAssignment.slice(0, 3).map(drive => (
+                                <div key={drive._id} className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm flex justify-between items-center hover:border-indigo-300 transition-colors">
+                                    <div>
+                                        <h4 className="text-sm font-bold text-[#1A237E]">{drive.name}</h4>
+                                        <div className="flex items-center gap-3 mt-1">
+                                            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                                                {drive.visitDate}
+                                            </span>
+                                            <span className="text-xs text-orange-600 font-medium bg-orange-50 px-2 py-0.5 rounded border border-orange-100">
+                                                Verification Pending
+                                            </span>
+                                        </div>
+                                        {/* Assuming 'drive' has a 'rounds' array, and each round has 'resources' */}
+                                        {drive.rounds && drive.rounds.length > 0 && drive.rounds.map((round, roundIndex) => (
+                                            <div key={roundIndex} className="mt-2 text-xs text-slate-600">
+                                                {round.resources && round.resources.split('\n').map((res, i) => {
+                                                    if (!res.trim()) return null;
+                                                    // Check if it's a file path or link
+                                                    // const isFile = res.includes('[File]'); // This logic might need refinement based on actual resource format
+                                                    const userUrl = res.split(': ')[1]?.trim();
+
+                                                    // Logic to determine correct HREF
+                                                    let finalUrl = userUrl;
+                                                    if (userUrl && !userUrl.startsWith('http://') && !userUrl.startsWith('https://')) {
+                                                        // If relative path (legacy local upload), prepend API URL
+                                                        finalUrl = `${api.defaults.baseURL}${userUrl}`;
+                                                    }
+
+                                                    return (
+                                                        <a
+                                                            key={i}
+                                                            href={finalUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="block text-indigo-600 hover:underline truncate"
+                                                        >
+                                                            {res}
+                                                        </a>
+                                                    );
+                                                })}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button
+                                        className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition shadow-sm"
+                                        onClick={() => {
+                                            setSelectedAssignmentDrive(drive);
+                                            setActiveModal('assign');
+                                        }}
+                                    >
+                                        Verify & Assign
+                                    </button>
+                                </div>
+                            ))}
+                            {stats.pendingFeedback > 0 && (
+                                <div className="p-4 bg-amber-50 border border-amber-100 rounded-lg flex justify-between items-center">
+                                    <div>
+                                        <h4 className="text-sm font-bold text-amber-800">{stats.pendingFeedback} Pending Reviews</h4>
+                                        <p className="text-xs text-amber-700">Approve feedback.</p>
+                                    </div>
+                                    <a href="/coordinator/feedback" className="bg-amber-500 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-amber-600 transition">
+                                        Review
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    ) : stats.pendingFeedback > 0 ? (
                         <div className="p-6 bg-amber-50 border border-amber-100 rounded-lg text-center">
                             <h4 className="text-lg font-bold text-amber-800 mb-2">You have {stats.pendingFeedback} pending reviews</h4>
                             <p className="text-sm text-amber-700 mb-4">Students are waiting for approval.</p>
@@ -149,11 +224,93 @@ export default function CoordinatorDashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* 4. Active Recruitment Drives List (Added for extra visibility) */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                    <h3 className="font-bold text-[#1A237E] flex items-center gap-2">
+                        <Building size={20} /> Active Recruitment Drives ({stats.domain} Domain)
+                    </h3>
+                    <a href="/coordinator/feedback" className="text-sm font-bold text-indigo-600 hover:text-indigo-800">View All</a>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                            <tr>
+                                <th className="p-4 border-b border-slate-100">Company</th>
+                                <th className="p-4 border-b border-slate-100">Domain</th>
+                                <th className="p-4 border-b border-slate-100">Date</th>
+                                <th className="p-4 border-b border-slate-100">Role</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                            {recentCompanies.length > 0 ? recentCompanies.map(company => (
+                                <tr key={company._id} className="hover:bg-slate-50">
+                                    <td className="p-4 font-bold text-[#1A237E]">{company.name}</td>
+                                    <td className="p-4">
+                                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${company.domain === 'Hardware' ? 'bg-orange-100 text-orange-700' :
+                                            company.domain === 'Software' ? 'bg-blue-100 text-blue-700' :
+                                                'bg-purple-100 text-purple-700'
+                                            }`}>
+                                            {company.domain || 'Both'}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 text-slate-500">{company.visitDate}</td>
+                                    <td className="p-4">{company.roles?.join(", ") || "N/A"}</td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan="4" className="p-8 text-center text-slate-400">
+                                        No active drives found for {stats.domain} domain.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {/* Assign Students Modal */}
+            {activeModal === 'assign' && selectedAssignmentDrive && (
+                <AssignStudentsModal
+                    currentUser={currentUser}
+                    company={selectedAssignmentDrive}
+                    onClose={() => {
+                        setActiveModal(null);
+                        setSelectedAssignmentDrive(null);
+                    }}
+                    onSuccess={() => {
+                        setActiveModal(null);
+                        setSelectedAssignmentDrive(null);
+                        fetchStats(); // Refresh data/counts
+                    }}
+                />
+            )}
         </div>
     );
 }
 
-// Icon helper since I missed importing it above
+// Sub-components
+function StatCard({ title, value, icon, color }) {
+    const colorClasses = {
+        amber: 'bg-amber-50 text-amber-500',
+        blue: 'bg-blue-50 text-blue-600',
+        teal: 'bg-teal-50 text-teal-600',
+        indigo: 'bg-indigo-50 text-indigo-600'
+    };
+
+    return (
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between transition-transform hover:-translate-y-1">
+            <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{title}</p>
+                <h3 className={`text-3xl font-bold mt-1 text-slate-800`}>{value}</h3>
+            </div>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClasses[color]}`}>
+                {icon}
+            </div>
+        </div>
+    );
+}
+
 function CheckIcon({ size }) {
     return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
 }

@@ -26,16 +26,45 @@ export default function StudentDashboard() {
             // 1. Fetch Companies for "Give Feedback"
             // 1. Fetch Companies for "Give Feedback"
             const companyRes = await api.get('/companies');
-            const eligible = companyRes.data.filter(c => {
-                if (c.status !== 'completed') return false;
 
+            // Helper function to check eligibility
+            const isStudentEligible = (c) => {
+                // 1. Whitelist Check (Manual Override)
                 // DATA CLEANING: Normalize emails to handle typos like ".." -> "."
                 const eligibilityList = c.eligibleStudents?.map(e => e.toLowerCase().trim().replace(/\.\./g, '.')) || [];
                 const userEmail = currentUser.email.toLowerCase().trim().replace(/\.\./g, '.');
                 const userRollNo = currentUser.rollNo ? currentUser.rollNo.toLowerCase().trim() : "";
+                const isWhitelisted = eligibilityList.includes(userEmail) || (userRollNo && eligibilityList.includes(userRollNo));
 
-                // Check strict email match OR RollNo match
-                return eligibilityList.includes(userEmail) || (userRollNo && eligibilityList.includes(userRollNo));
+                // 2. Dynamic Criteria Check (Domain + Marks)
+                let meetsCriteria = true;
+
+                // Domain Check
+                if (c.domain && c.domain !== 'Both') {
+                    if (c.domain !== currentUser.domain) meetsCriteria = false;
+                }
+
+                // Marks Check (Only if student has data)
+                const sCGPA = parseFloat(currentUser.cgpa || 0);
+                const s10th = parseFloat(currentUser.tenthMark || 0);
+                const s12th = parseFloat(currentUser.twelfthMark || 0);
+
+                if (c.eligibility) {
+                    if (c.eligibility.cgpaMin && sCGPA < parseFloat(c.eligibility.cgpaMin)) meetsCriteria = false;
+                    if (c.eligibility.tenthMin && s10th < parseFloat(c.eligibility.tenthMin)) meetsCriteria = false;
+                    if (c.eligibility.twelfthMin && s12th < parseFloat(c.eligibility.twelfthMin)) meetsCriteria = false;
+                }
+
+                // Return true if EITHER whitelisted OR meets criteria
+                return isWhitelisted || meetsCriteria;
+            };
+
+            // Filter for ALL Eligible Drives (Scheduled + Completed)
+            // User requested that Scheduled drives also allow feedback (or at least appear in this list).
+            const eligible = companyRes.data.filter(c => {
+                // Include both Scheduled and Completed
+                if (c.status !== 'completed' && c.status !== 'scheduled') return false;
+                return isStudentEligible(c);
             });
             setAvailableCompanies(eligible);
 
@@ -120,7 +149,7 @@ export default function StudentDashboard() {
                         <div className="flex justify-between items-center mb-6">
                             <div>
                                 <h2 className="text-xl font-bold text-slate-800">Help Your Juniors Grow!</h2>
-                                <p className="text-sm text-slate-500 font-medium">Pending feedback reviews</p>
+                                <p className="text-sm text-slate-500 font-medium">Available Opportunities & Feedback</p>
                             </div>
                         </div>
 
