@@ -9,7 +9,6 @@ const DEPT_MAP = {
     // CSD
     'CDR': 'Computer Science and Design',
     'CSD': 'Computer Science and Design',
-    'CDR': 'Computer Science and Design',
     // AIDS
     'ADR': 'Artificial Intelligence and Data Science',
     'ADS': 'Artificial Intelligence and Data Science',
@@ -34,7 +33,6 @@ const DEPT_MAP = {
     // MTS
     'MTR': 'Mechatronics Engineering',
     'MTS': 'Mechatronics Engineering',
-    'MTR': 'Mechatronics Engineering',
     // CHEMICAL
     'CHR': 'Chemical Engineering',
     'CHEM': 'Chemical Engineering',
@@ -44,13 +42,8 @@ const DEPT_MAP = {
     // AUTO
     'AUR': 'Automobile Engineering',
     'AUTO': 'Automobile Engineering',
-<<<<<<< HEAD
-    'ISR': 'M.SC'
-=======
-
     // M.Sc
     'ISR': 'M.Sc Software Systems'
->>>>>>> a78b22ce1afb0e0f5231969836fb33a8be124a95
 };
 
 export const parseStudentDetails = (name) => {
