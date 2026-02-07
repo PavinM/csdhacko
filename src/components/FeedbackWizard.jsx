@@ -147,7 +147,8 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
 
             // Append to resources
             const currentResources = formData.rounds[roundIndex].resources || '';
-            const newEntry = `\n[File] ${data.name}: ${api.defaults.baseURL}${data.url}`;
+            // Backend returns full URL (Google Drive) now, so no need to prepend baseURL
+            const newEntry = `\n[File] ${data.name}: ${data.url}`;
             handleRoundChange(roundIndex, 'resources', currentResources + newEntry);
 
         } catch (error) {

@@ -135,6 +135,36 @@ export default function CoordinatorDashboard() {
                                                 Verification Pending
                                             </span>
                                         </div>
+                                        {/* Assuming 'drive' has a 'rounds' array, and each round has 'resources' */}
+                                        {drive.rounds && drive.rounds.length > 0 && drive.rounds.map((round, roundIndex) => (
+                                            <div key={roundIndex} className="mt-2 text-xs text-slate-600">
+                                                {round.resources && round.resources.split('\n').map((res, i) => {
+                                                    if (!res.trim()) return null;
+                                                    // Check if it's a file path or link
+                                                    // const isFile = res.includes('[File]'); // This logic might need refinement based on actual resource format
+                                                    const userUrl = res.split(': ')[1]?.trim();
+
+                                                    // Logic to determine correct HREF
+                                                    let finalUrl = userUrl;
+                                                    if (userUrl && !userUrl.startsWith('http://') && !userUrl.startsWith('https://')) {
+                                                        // If relative path (legacy local upload), prepend API URL
+                                                        finalUrl = `${api.defaults.baseURL}${userUrl}`;
+                                                    }
+
+                                                    return (
+                                                        <a
+                                                            key={i}
+                                                            href={finalUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="block text-indigo-600 hover:underline truncate"
+                                                        >
+                                                            {res}
+                                                        </a>
+                                                    );
+                                                })}
+                                            </div>
+                                        ))}
                                     </div>
                                     <button
                                         className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition shadow-sm"
