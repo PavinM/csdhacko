@@ -117,3 +117,7 @@ dist
 
 # Mac OS
 .DS_Store
+
+# Uploads
+uploads/
+test_upload.txt

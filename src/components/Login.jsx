@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Lock, Mail, ChevronRight } from "lucide-react";
+import { User, Lock, Mail, ChevronRight, AlertCircle } from "lucide-react";
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from "../contexts/AuthContext";
 import kecLogo from "../assets/KEC.png";
@@ -13,28 +13,35 @@ export default function Login() {
     const [department, setDepartment] = useState("");
     const [role, setRole] = useState("student");
     const [error, setError] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
     const navigate = useNavigate();
     const { currentUser, userRole, login, signup, googleLogin } = useAuth();
 
     useEffect(() => {
         if (currentUser && userRole) {
-            console.log(`Login: Authenticated as ${userRole}, waiting to navigate...`);
-            // FORCE REFRESH TO ENSURE STATE IS SYNCED
-            setTimeout(() => {
-                window.location.href = `/${userRole}`;
-            }, 1000);
+            console.log(`Login: Authenticated as ${userRole}, navigating...`);
+            // Use navigate instead of window.location.href for client-side routing
+            // Ensure role is lowercase to match route definitions
+            navigate(`/${userRole.toLowerCase()}`);
         }
     }, [currentUser, userRole, navigate]);
 
 
 
     const handleAuth = async (e) => {
-        e.preventDefault();
+        if (e && e.preventDefault) e.preventDefault(); // Handle if called from event
         setError("");
+        setIsLoading(true);
         try {
             if (isLogin) {
-                await login(email, password);
+                // Login returns the full user object now
+                const user = await login(email, password);
+                if (user && user.role) {
+                    const target = `/${user.role.toLowerCase()}`;
+                    console.log("Login success! Direct navigation to:", target);
+                    navigate(target, { replace: true });
+                }
             } else {
                 await signup(email, password, {
                     name,
@@ -42,10 +49,14 @@ export default function Login() {
                     // Fix: Provide default department for Admin as it's required by backend
                     department: role === "admin" ? "Administration" : department
                 });
+                // Signup might not auto-login depending on impl, but if it does:
+                if (role) navigate(`/${role.toLowerCase()}`, { replace: true });
             }
         } catch (err) {
             console.error(err);
             setError(err.message);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -133,8 +144,15 @@ export default function Login() {
                         </div>
 
                         {error && (
-                            <div className="bg-red-50 text-red-700 p-4 rounded-lg text-sm mb-6 border-l-4 border-red-500 flex items-center shadow-sm">
-                                {error}
+                            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3 shadow-sm animate-fade-in relative overflow-hidden">
+                                <div className="bg-red-100 p-2 rounded-full shrink-0">
+                                    <AlertCircle className="text-red-600" size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-bold text-red-900">Authentication Error</h3>
+                                    <p className="text-xs text-red-700 mt-1 leading-relaxed">{error}</p>
+                                </div>
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
                             </div>
                         )}
 
@@ -144,7 +162,7 @@ export default function Login() {
                             </div>
                         )}
 
-                        <form onSubmit={handleAuth} className="space-y-5">
+                        <div className="space-y-5">
                             {!isLogin && (
                                 <>
                                     <div className="space-y-1.5">
@@ -155,7 +173,7 @@ export default function Login() {
                                                 type="text"
                                                 className="w-full border-b-2 border-gray-200 bg-gray-50 rounded-t-lg px-4 py-2.5 pl-10 focus:border-[#1A237E] focus:bg-white outline-none transition-colors"
                                                 placeholder="John Doe"
-                                                value={name} onChange={(e) => setName(e.target.value)} required
+                                                value={name} onChange={(e) => setName(e.target.value)}
                                             />
                                         </div>
                                     </div>
@@ -167,7 +185,7 @@ export default function Login() {
                                                 type="text"
                                                 className="w-full border-b-2 border-gray-200 bg-gray-50 rounded-t-lg px-4 py-2.5 focus:border-[#1A237E] focus:bg-white outline-none transition-colors"
                                                 placeholder="CSE"
-                                                value={department} onChange={(e) => setDepartment(e.target.value)} required
+                                                value={department} onChange={(e) => setDepartment(e.target.value)}
                                             />
                                         </div>
                                     )}
@@ -182,7 +200,8 @@ export default function Login() {
                                         type="email"
                                         className="w-full border-b-2 border-gray-200 bg-gray-50 rounded-t-lg px-4 py-2.5 pl-10 focus:border-[#1A237E] focus:bg-white outline-none transition-colors"
                                         placeholder="student@kongu.edu"
-                                        value={email} onChange={(e) => setEmail(e.target.value)} required
+                                        value={email} onChange={(e) => setEmail(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleAuth(e)}
                                     />
                                 </div>
                             </div>
@@ -195,20 +214,27 @@ export default function Login() {
                                         type="password"
                                         className="w-full border-b-2 border-gray-200 bg-gray-50 rounded-t-lg px-4 py-2.5 pl-10 focus:border-[#1A237E] focus:bg-white outline-none transition-colors"
                                         placeholder="••••••••"
-                                        value={password} onChange={(e) => setPassword(e.target.value)} required
+                                        value={password} onChange={(e) => setPassword(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleAuth(e)}
                                     />
                                 </div>
                             </div>
 
                             <div className="pt-4">
                                 <button
-                                    type="submit"
-                                    className="w-full bg-[#00897B] hover:bg-[#00796B] text-white font-bold py-3.5 rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 transform active:scale-[0.99]"
+                                    type="button"
+                                    onClick={handleAuth}
+                                    disabled={isLoading}
+                                    className={`w-full bg-[#00897B] hover:bg-[#00796B] text-white font-bold py-3.5 rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 transform active:scale-[0.99] ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                                 >
-                                    {isLogin ? "Sign In" : "Create Account"} <ChevronRight size={18} />
+                                    {isLoading ? (
+                                        <>Processing...</>
+                                    ) : (
+                                        <>{isLogin ? "Sign In" : "Create Account"} <ChevronRight size={18} /></>
+                                    )}
                                 </button>
                             </div>
-                        </form>
+                        </div>
 
                         <div className="mt-8 text-center pt-6">
                             <p className="text-sm text-gray-600">
