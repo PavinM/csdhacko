@@ -484,7 +484,7 @@ export default function AdminDashboard() {
                             <thead className="bg-slate-50 text-slate-500 uppercase text-xs font-bold tracking-wider">
                                 <tr>
                                     <th className="p-4">Company</th>
-                                    <th className="p-4">Department</th>
+                                    <th className="p-4">Domain</th>
                                     <th className="p-4">Date</th>
                                     <th className="p-4">Eligibility</th>
                                     <th className="p-4">Status</th>
@@ -494,7 +494,14 @@ export default function AdminDashboard() {
                                 {companiesList.map(company => (
                                     <tr key={company._id} className="hover:bg-slate-50">
                                         <td className="p-4 font-bold text-indigo-900">{company.name}</td>
-                                        <td className="p-4 text-sm text-slate-600">{company.department}</td>
+                                        <td className="p-4 text-sm text-slate-600">
+                                            <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${company.domain === 'Hardware' ? 'bg-orange-100 text-orange-700' :
+                                                company.domain === 'Software' ? 'bg-blue-100 text-blue-700' :
+                                                    'bg-purple-100 text-purple-700'
+                                                }`}>
+                                                {company.domain || 'Both'}
+                                            </span>
+                                        </td>
                                         <td className="p-4 text-sm text-slate-500">{company.visitDate}</td>
                                         <td className="p-4">
                                             <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">

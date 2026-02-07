@@ -84,3 +84,39 @@ export const parseStudentDetails = (name) => {
 
     return { rollNo: null, department: null };
 };
+
+export const SOFTWARE_DEPTS = [
+    'Computer Science and Engineering', 'CSE', 'CSR',
+    'Information Technology', 'IT', 'ITR',
+    'Computer Science and Design', 'CSD', 'CDR',
+    'Artificial Intelligence and Data Science', 'AIDS', 'ADR', 'ADS',
+    'Artificial Intelligence and Machine Learning', 'AIML', 'ALR', 'AIM',
+    'M.Sc Software Systems', 'MSC', 'ISR'
+];
+
+export const HARDWARE_DEPTS = [
+    'Electronics and Communication Engineering', 'ECE', 'ECR',
+    'Electrical and Electronics Engineering', 'EEE', 'EER',
+    'Electronics and Instrumentation Engineering', 'EIE', 'EIR',
+    'Mechanical Engineering', 'MECH', 'MER',
+    'Civil Engineering', 'CIVIL', 'CVR', 'CE',
+    'Mechatronics Engineering', 'MTS', 'MTR',
+    'Chemical Engineering', 'CHEM', 'CMR',
+    'Food Technology', 'FT', 'FTR',
+    'Automobile Engineering', 'AUTO', 'AUR'
+];
+
+export const getDomainFromDept = (department) => {
+    if (!department) return 'Both';
+    const normalized = department.trim();
+    if (SOFTWARE_DEPTS.includes(normalized)) return 'Software';
+    if (HARDWARE_DEPTS.includes(normalized)) return 'Hardware';
+
+    // Check key in DEPT_MAP if normalized is a code
+    if (DEPT_MAP[normalized]) {
+        if (SOFTWARE_DEPTS.includes(DEPT_MAP[normalized])) return 'Software';
+        if (HARDWARE_DEPTS.includes(DEPT_MAP[normalized])) return 'Hardware';
+    }
+
+    return 'Both';
+};

@@ -3,6 +3,9 @@ import asyncHandler from 'express-async-handler';
 import Feedback from '../models/Feedback.js';
 import { protect, coordinator } from '../middleware/authMiddleware.js';
 
+
+import { SOFTWARE_DEPTS, HARDWARE_DEPTS } from '../utils/studentParser.js';
+
 const router = express.Router();
 
 // @desc    Create new feedback
@@ -35,6 +38,16 @@ router.get('/', protect, asyncHandler(async (req, res) => {
     if (req.query.department) filters.department = req.query.department;
     if (req.query.status) filters.status = req.query.status;
     if (req.query.company) filters.companyName = req.query.company;
+
+    // Domain Filter
+    if (req.query.domainType) {
+        if (req.query.domainType === 'Software') {
+            filters.department = { $in: SOFTWARE_DEPTS };
+        } else if (req.query.domainType === 'Hardware') {
+            filters.department = { $in: HARDWARE_DEPTS };
+        }
+        // If 'Both' or invalid, do not filter by department (show all)
+    }
 
     // If student, maybe show their own feedback? Or all approved feedbacl?
     // Let's implement: public get = approved only, unless coordinator/admin

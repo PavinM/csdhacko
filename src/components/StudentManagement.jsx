@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/api";
+import { getDomainFromDept } from "../utils/studentUtils";
 import { UserPlus, Search, MoreVertical, X, Users, Mail, BookOpen, Calendar, Hash } from "lucide-react";
 
 export default function StudentManagement() {
@@ -34,8 +35,15 @@ export default function StudentManagement() {
 
     const fetchStudents = async () => {
         try {
+            const userDomain = getDomainFromDept(currentUser.department);
+            let query = `role=student&department=${currentUser.department}`; // Fallback
+
+            if (userDomain !== 'Both') {
+                query = `role=student&domainType=${userDomain}`;
+            }
+
             // Fetch students from API
-            const { data } = await api.get(`/users?role=student&department=${currentUser.department}`);
+            const { data } = await api.get(`/users?${query}`);
             setStudents(data);
         } catch (error) {
             console.error("Error fetching students:", error);
