@@ -64,6 +64,14 @@ router.get('/', protect, asyncHandler(async (req, res) => {
     res.json(feedbacks);
 }));
 
+// @desc    Get student's own submissions (all statuses)
+// @route   GET /api/feedback/my-submissions
+// @access  Private (Student)
+router.get('/my-submissions', protect, asyncHandler(async (req, res) => {
+    const feedbacks = await Feedback.find({ studentId: req.user._id }).sort({ createdAt: -1 });
+    res.json(feedbacks);
+}));
+
 // @desc    Update feedback status (Approve/Reject)
 // @route   PUT /api/feedback/:id/status
 // @access  Private/Coordinator

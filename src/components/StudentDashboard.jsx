@@ -8,6 +8,7 @@ export default function StudentDashboard() {
     const { currentUser } = useAuth();
     const [availableCompanies, setAvailableCompanies] = useState([]); // Companies open for feedback
     const [approvedFeedbacks, setApprovedFeedbacks] = useState([]); // All approved feedbacks (Global View)
+    const [mySubmissions, setMySubmissions] = useState([]); // Student's own submissions (all statuses)
     const [loading, setLoading] = useState(true);
     const [viewFeedback, setViewFeedback] = useState(null); // Local: Feedback object to view details
 
@@ -23,7 +24,6 @@ export default function StudentDashboard() {
 
     const fetchDashboardData = async () => {
         try {
-            // 1. Fetch Companies for "Give Feedback"
             // 1. Fetch Companies for "Give Feedback"
             const companyRes = await api.get('/companies');
 
@@ -72,10 +72,20 @@ export default function StudentDashboard() {
             const feedbackRes = await api.get('/feedback?status=approved');
             setApprovedFeedbacks(feedbackRes.data);
 
+            // 3. Fetch Student's Own Submissions (to track status)
+            const mySubmissionsRes = await api.get('/feedback/my-submissions');
+            setMySubmissions(mySubmissionsRes.data);
+
         } catch (error) {
             console.error("Error fetching student dashboard data:", error);
         }
         setLoading(false);
+    };
+
+    // Helper: Check if student has submitted feedback for a company
+    const getSubmissionStatus = (companyName) => {
+        const submission = mySubmissions.find(sub => sub.companyName === companyName);
+        return submission || null;
     };
 
     const handleGiveFeedback = (company) => {
@@ -166,25 +176,56 @@ export default function StudentDashboard() {
                                         <p className="text-xs text-slate-400">You can only give feedback for drives you attended.</p>
                                     </div>
                                 ) : (
-                                    availableCompanies.map(company => (
-                                        <div key={company._id} className="bg-white rounded-xl p-5 border border-indigo-100 shadow-sm hover:shadow-md transition-all mb-4 relative overflow-hidden group">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <h3 className="font-bold text-lg text-indigo-900">{company.name}</h3>
-                                                    <p className="text-sm text-slate-500">{company.roles}</p>
-                                                    <div className="flex items-center gap-4 mt-2 text-xs text-slate-400 font-medium">
-                                                        <span className="flex items-center gap-1"><Calendar size={12} /> {company.visitDate}</span>
+                                    availableCompanies.map(company => {
+                                        const submission = getSubmissionStatus(company.name);
+                                        const hasSubmitted = !!submission;
+                                        const isApproved = submission?.status === 'approved';
+                                        const isPending = submission?.status === 'pending';
+
+                                        return (
+                                            <div
+                                                key={company._id}
+                                                onClick={() => !hasSubmitted && handleGiveFeedback(company)}
+                                                className={`bg-white rounded-xl p-5 border shadow-sm mb-4 relative overflow-hidden transition-all ${hasSubmitted
+                                                        ? 'border-slate-200 cursor-default'
+                                                        : 'border-indigo-100 hover:shadow-md cursor-pointer group'
+                                                    }`}
+                                            >
+                                                <div className="flex justify-between items-start">
+                                                    <div className="flex-1">
+                                                        <h3 className="font-bold text-lg text-indigo-900">{company.name}</h3>
+                                                        <p className="text-sm text-slate-500">{company.roles}</p>
+                                                        <div className="flex items-center gap-4 mt-2 text-xs text-slate-400 font-medium">
+                                                            <span className="flex items-center gap-1"><Calendar size={12} /> {company.visitDate}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        {isApproved && (
+                                                            <span className="bg-green-100 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 border border-green-200">
+                                                                <CheckCircle size={14} /> Approved
+                                                            </span>
+                                                        )}
+                                                        {isPending && (
+                                                            <span className="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 border border-yellow-200">
+                                                                ⏳ Pending Review
+                                                            </span>
+                                                        )}
+                                                        {!hasSubmitted && (
+                                                            <button
+                                                                onClick={() => handleGiveFeedback(company)}
+                                                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md transition transform active:scale-95"
+                                                            >
+                                                                Give Feedback
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </div>
-                                                <button
-                                                    onClick={() => handleGiveFeedback(company)}
-                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md transition transform active:scale-95"
-                                                >
-                                                    Give Feedback
-                                                </button>
+                                                {!hasSubmitted && (
+                                                    <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition pointer-events-none"></div>
+                                                )}
                                             </div>
-                                        </div>
-                                    ))
+                                        );
+                                    })
                                 )}
                             </div>
 

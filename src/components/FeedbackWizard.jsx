@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, CheckCircle, FileText, Briefcase, Calendar, Layers, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle, FileText, Briefcase, Calendar, Layers, Check, Paperclip, Link as LinkIcon, Upload, X, Loader } from 'lucide-react';
 import api from '../lib/api'; // MERN API
 
 export default function FeedbackWizard({ currentUser, onClose, onSuccess, initialCompany = '', initialPackage = '' }) {
@@ -13,19 +13,7 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
         jobRole: '', // Added for MERN Schema
         salaryPackage: initialPackage,
         driveDate: '',
-        driveDate: '',
         department: '', // Removed default 'CSE'
-        eligibility: {
-            degree: '',
-            cgpa: '',
-            tenthPercentage: '',
-            twelfthPercentage: '',
-            activeArrears: 'No',
-            historyOfArrears: 'No',
-            gapYears: '',
-            nationality: '',
-            other: ''
-        },
         numberOfRounds: 3,
 
         // Step 2 ton N: Round Details (Dynamic)
@@ -65,14 +53,14 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-        if (value) setErrors(prev => ({ ...prev, [field]: '' }));
+        if (value) setErrors(prev => ({ ...prev, [field]: '' })); // Clear specific error
     };
 
     const handleRoundChange = (index, field, value) => {
         const newRounds = [...formData.rounds];
         newRounds[index] = { ...newRounds[index], [field]: value };
         setFormData(prev => ({ ...prev, rounds: newRounds }));
-        if (value) setErrors(prev => ({ ...prev, [`round${index}_${field}`]: '' }));
+        if (value) setErrors(prev => ({ ...prev, [`round${index}_${field}`]: '' })); // Clear specific error
     };
 
     const validateStep = (currentStep) => {
@@ -82,8 +70,6 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
             if (!formData.jobRole) newErrors.jobRole = "Job Role is required";
             if (!formData.driveDate) newErrors.driveDate = "Drive Date is required";
             if (!formData.department) newErrors.department = "Department is required";
-            if (!formData.eligibility.degree) newErrors.eligibility = "Degree is required";
-            if (!formData.eligibility.cgpa) newErrors.eligibility = "CGPA is required";
         } else if (currentStep > 1 && currentStep <= 1 + formData.rounds.length) {
             const roundIndex = currentStep - 2;
             const round = formData.rounds[roundIndex];
@@ -120,7 +106,6 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
             \n\n--- Additional Details ---
             Package: ${formData.salaryPackage}
             Difficulty: ${formData.overallDifficulty}
-            Eligibility: ${JSON.stringify(formData.eligibility)}
             `;
 
             const mernPayload = {
@@ -144,6 +129,42 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
         } finally {
             setLoading(false);
         }
+    };
+
+    // File Upload Handler
+    const handleFileUpload = async (e, roundIndex) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const uploadData = new FormData();
+        uploadData.append('file', file);
+
+        try {
+            // Show some loading indicator if needed
+            const { data } = await api.post('/upload', uploadData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            // Append to resources
+            const currentResources = formData.rounds[roundIndex].resources || '';
+            // Backend returns full URL (Google Drive) now, so no need to prepend baseURL
+            const newEntry = `\n[File] ${data.name}: ${data.url}`;
+            handleRoundChange(roundIndex, 'resources', currentResources + newEntry);
+
+        } catch (error) {
+            console.error("Upload failed", error);
+            alert("File upload failed");
+        }
+    };
+
+    const addLink = (roundIndex) => {
+        const url = prompt("Enter Resource URL:");
+        if (!url) return;
+        const title = prompt("Enter Title (Optional):") || "Link";
+
+        const currentResources = formData.rounds[roundIndex].resources || '';
+        const newEntry = `\n[Link] ${title}: ${url}`;
+        handleRoundChange(roundIndex, 'resources', currentResources + newEntry);
     };
 
     const totalSteps = 2 + formData.rounds.length; // 1 (Intro) + Rounds + 1 (Review)
@@ -267,151 +288,7 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
                                     </select>
                                 </div>
                                 <div className="md:col-span-2">
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Eligibility Criteria</label>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-
-                                        {/* Degree */}
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Degree</label>
-                                            <select
-                                                className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-indigo-500 bg-white"
-                                                value={formData.eligibility.degree}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, eligibility: { ...prev.eligibility, degree: e.target.value } }))}
-                                            >
-                                                <option value="" disabled>Select Degree</option>
-                                                <option value="B.E / B.Tech">B.E / B.Tech</option>
-                                                <option value="MCA">MCA</option>
-                                                <option value="B.E / B.Tech / MCA">B.E / B.Tech / MCA</option>
-                                                <option value="Any Degree">Any Degree</option>
-                                            </select>
-                                        </div>
-
-                                        {/* CGPA */}
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">CGPA</label>
-                                            <select
-                                                className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-indigo-500 bg-white"
-                                                value={formData.eligibility.cgpa}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, eligibility: { ...prev.eligibility, cgpa: e.target.value } }))}
-                                            >
-                                                <option value="" disabled>Select CGPA</option>
-                                                <option value="No Criteria">No Criteria</option>
-                                                <option value=">= 6.0">≥ 6.0</option>
-                                                <option value=">= 6.5">≥ 6.5</option>
-                                                <option value=">= 7.0">≥ 7.0</option>
-                                                <option value=">= 7.5">≥ 7.5</option>
-                                                <option value=">= 8.0">≥ 8.0</option>
-                                                <option value=">= 8.5">≥ 8.5</option>
-                                            </select>
-                                        </div>
-
-                                        {/* 10th */}
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">10th %</label>
-                                            <select
-                                                className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-indigo-500 bg-white"
-                                                value={formData.eligibility.tenthPercentage}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, eligibility: { ...prev.eligibility, tenthPercentage: e.target.value } }))}
-                                            >
-                                                <option value="" disabled>Select %</option>
-                                                <option value="No Criteria">No Criteria</option>
-                                                <option value=">= 50%">≥ 50%</option>
-                                                <option value=">= 60%">≥ 60%</option>
-                                                <option value=">= 70%">≥ 70%</option>
-                                                <option value=">= 75%">≥ 75%</option>
-                                                <option value=">= 80%">≥ 80%</option>
-                                            </select>
-                                        </div>
-
-                                        {/* 12th */}
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">12th %</label>
-                                            <select
-                                                className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-indigo-500 bg-white"
-                                                value={formData.eligibility.twelfthPercentage}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, eligibility: { ...prev.eligibility, twelfthPercentage: e.target.value } }))}
-                                            >
-                                                <option value="" disabled>Select %</option>
-                                                <option value="No Criteria">No Criteria</option>
-                                                <option value=">= 50%">≥ 50%</option>
-                                                <option value=">= 60%">≥ 60%</option>
-                                                <option value=">= 70%">≥ 70%</option>
-                                                <option value=">= 75%">≥ 75%</option>
-                                                <option value=">= 80%">≥ 80%</option>
-                                            </select>
-                                        </div>
-
-                                        {/* Active Arrears */}
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Active Arrears</label>
-                                            <select
-                                                className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-indigo-500 bg-white"
-                                                value={formData.eligibility.activeArrears}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, eligibility: { ...prev.eligibility, activeArrears: e.target.value } }))}
-                                            >
-                                                <option>No</option>
-                                                <option>Yes</option>
-                                            </select>
-                                        </div>
-
-                                        {/* History of Arrears */}
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">History of Arrears</label>
-                                            <select
-                                                className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-indigo-500 bg-white"
-                                                value={formData.eligibility.historyOfArrears}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, eligibility: { ...prev.eligibility, historyOfArrears: e.target.value } }))}
-                                            >
-                                                <option>No</option>
-                                                <option>Yes</option>
-                                                <option>Allowed</option>
-                                            </select>
-                                        </div>
-
-                                        {/* Gap Years */}
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Gap Years</label>
-                                            <select
-                                                className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-indigo-500 bg-white"
-                                                value={formData.eligibility.gapYears}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, eligibility: { ...prev.eligibility, gapYears: e.target.value } }))}
-                                            >
-                                                <option value="" disabled>Gap Years</option>
-                                                <option value="Not Allowed">Not Allowed</option>
-                                                <option value="Up to 1 Year">Up to 1 Year</option>
-                                                <option value="Up to 2 Years">Up to 2 Years</option>
-                                                <option value="Any">Any</option>
-                                            </select>
-                                        </div>
-
-                                        {/* Nationality */}
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Nationality</label>
-
-                                            <select
-                                                className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-indigo-500 bg-white"
-                                                value={formData.eligibility.nationality}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, eligibility: { ...prev.eligibility, nationality: e.target.value } }))}
-                                            >
-                                                <option value="" disabled>Select</option>
-                                                <option value="Indian">Indian</option>
-                                                <option value="Any">Any</option>
-                                            </select>
-                                        </div>
-
-                                        {/* Other */}
-                                        <div className="md:col-span-2">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Other Criteria</label>
-                                            <input
-                                                type="text"
-                                                className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-indigo-500"
-                                                value={formData.eligibility.other}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, eligibility: { ...prev.eligibility, other: e.target.value } }))}
-                                                placeholder="Any other specific requirements..."
-                                            />
-                                        </div>
-                                    </div>
-                                    {errors.eligibility && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.eligibility}</p>}
+                                    {/* Removed Eligibility Criteria */}
                                 </div>
                             </div>
 
@@ -518,14 +395,29 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
 
                                     <div className="md:col-span-2">
                                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-2">
-                                            <Layers size={14} /> Share Resources
+                                            <Layers size={14} /> Share Resources (Files & Links)
                                         </label>
+
+                                        <div className="flex gap-2 mb-2">
+                                            <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition">
+                                                <Upload size={14} /> Upload File
+                                                <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, roundIndex)} accept=".pdf,.doc,.docx,.png,.jpg" />
+                                            </label>
+                                            <button
+                                                onClick={() => addLink(roundIndex)}
+                                                className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition"
+                                            >
+                                                <LinkIcon size={14} /> Add Link
+                                            </button>
+                                        </div>
+
                                         <textarea
-                                            className="w-full border border-slate-200 bg-slate-50/50 rounded-xl p-3.5 h-24 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-700 resize-none"
+                                            className="w-full border border-slate-200 bg-slate-50/50 rounded-xl p-3.5 h-24 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-700 resize-none font-mono text-sm"
                                             value={formData.rounds[roundIndex]?.resources}
                                             onChange={(e) => handleRoundChange(roundIndex, 'resources', e.target.value)}
-                                            placeholder="Paste links to study materials, drive folders, or book references relevant to this round..."
+                                            placeholder="Resources will appear here. You can also type manually..."
                                         />
+                                        <p className="text-[10px] text-slate-400 mt-1">Supported: PDF, Docs, Images. Files are securely stored.</p>
                                     </div>
                                 </div>
 
@@ -641,6 +533,7 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
 
                     {step < totalSteps ? (
                         <div className="flex flex-col items-end gap-2">
+
                             <button
                                 onClick={nextStep}
                                 className="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg hover:shadow-indigo-500/30 transform active:scale-95 transition flex items-center gap-2"
