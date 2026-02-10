@@ -6,6 +6,7 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({}); // Changed from string to object
+    const [showCustomRoundsInput, setShowCustomRoundsInput] = useState(false);
 
     // Extract company data - support both string (legacy) and object (new)
     const companyName = typeof initialCompany === 'string' ? initialCompany : (initialCompany?.name || '');
@@ -300,13 +301,42 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Number of Rounds</label>
                                     <select
                                         className="w-full border border-slate-200 bg-slate-50/50 rounded-xl p-3.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-700"
-                                        value={formData.numberOfRounds}
-                                        onChange={(e) => updateRoundsCount(e.target.value)}
+                                        value={showCustomRoundsInput ? 'custom' : formData.numberOfRounds}
+                                        onChange={(e) => {
+                                            if (e.target.value === 'custom') {
+                                                setShowCustomRoundsInput(true);
+                                            } else {
+                                                setShowCustomRoundsInput(false);
+                                                updateRoundsCount(e.target.value);
+                                            }
+                                        }}
                                     >
-                                        {[1, 2, 3, 4, 5, 6].map(num => (
-                                            <option key={num} value={num}>{num}</option>
+                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                                            <option key={num} value={num}>{num} {num === 1 ? 'Round' : 'Rounds'}</option>
                                         ))}
+                                        <option value="custom">Custom (10+)</option>
                                     </select>
+
+                                    {showCustomRoundsInput && (
+                                        <div className="mt-3 animate-fade-in-up">
+                                            <input
+                                                type="number"
+                                                min="11"
+                                                max="20"
+                                                className="w-full border border-indigo-300 bg-indigo-50/50 rounded-xl p-3.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-700"
+                                                placeholder="Enter number of rounds (11-20)"
+                                                onChange={(e) => {
+                                                    const value = parseInt(e.target.value);
+                                                    if (value >= 11 && value <= 20) {
+                                                        updateRoundsCount(value);
+                                                    }
+                                                }}
+                                            />
+                                            <p className="text-xs text-indigo-600 mt-1.5 font-medium">
+                                                💡 Enter a value between 11 and 20 rounds
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="md:col-span-2">
                                     {/* Removed Eligibility Criteria */}
