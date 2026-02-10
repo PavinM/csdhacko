@@ -1,12 +1,15 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useState, useEffect } from "react";
+import api from "../lib/api";
 import {
     LayoutDashboard,
     FileText,
     CheckSquare,
     Users,
     LogOut,
-    ChevronRight
+    ChevronRight,
+    UserCog
 } from "lucide-react";
 import kecLogo from "../assets/KEC.png";
 
@@ -14,6 +17,22 @@ export default function Sidebar() {
     const { userRole, currentUser, logout } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
+    const [pendingEditRequests, setPendingEditRequests] = useState(0);
+
+    useEffect(() => {
+        if (userRole === 'coordinator') {
+            fetchPendingCount();
+        }
+    }, [userRole]);
+
+    const fetchPendingCount = async () => {
+        try {
+            const res = await api.get('/users/edit-requests?status=pending');
+            setPendingEditRequests(res.data.length);
+        } catch (error) {
+            console.error("Error fetching pending edit requests:", error);
+        }
+    };
 
     const handleLogout = () => {
         logout();
@@ -54,6 +73,13 @@ export default function Sidebar() {
             label: 'Students\' Feedback',
             path: '/coordinator/feedback',
             icon: FileText
+        },
+        {
+            role: 'coordinator',
+            label: 'Student Edit Requests',
+            path: '/coordinator/edit-requests',
+            icon: UserCog,
+            badge: 'pendingEditRequests'
         },
         {
             role: 'coordinator',
@@ -119,6 +145,11 @@ export default function Sidebar() {
                         <div className="flex items-center gap-3">
                             <item.icon size={20} className={isActive(item.path) ? "text-[#003366]" : "text-blue-300 group-hover:text-white"} />
                             <span>{item.label}</span>
+                            {item.badge === 'pendingEditRequests' && pendingEditRequests > 0 && (
+                                <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                    {pendingEditRequests}
+                                </span>
+                            )}
                         </div>
                         {isActive(item.path) && <ChevronRight size={16} />}
                     </Link>

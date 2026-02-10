@@ -422,11 +422,35 @@ export default function AdminDashboard() {
             {/* Bulk Upload Modal */}
             {isBulkUploading && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-fade-in relative">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 animate-fade-in relative">
                         <button onClick={() => setIsBulkUploading(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><X size={20} /></button>
                         <h2 className="text-xl font-bold text-emerald-800 mb-2 flex items-center gap-2"><Upload size={24} /> Bulk Student Upload</h2>
-                        <p className="text-sm text-slate-500 mb-6">Upload an Excel file to register or update students. Supported columns: <b>Name, Email, RollNo, Department, 10th %, 12th %, Current CGPA</b>.</p>
+                        <p className="text-sm text-slate-500 mb-4">Upload an Excel file to register or update students in bulk.</p>
 
+                        {/* Download Sample Template Button */}
+                        <a
+                            href="/student_bulk_upload_template.xlsx"
+                            download="student_bulk_upload_template.xlsx"
+                            className="mb-6 flex items-center justify-center gap-2 bg-blue-50 border-2 border-blue-200 text-blue-700 px-4 py-3 rounded-lg font-semibold hover:bg-blue-100 transition shadow-sm"
+                        >
+                            <FileSpreadsheet size={20} /> Download Sample Template
+                        </a>
+
+                        {/* Format Instructions */}
+                        <div className="mb-6 bg-slate-50 border border-slate-200 rounded-lg p-4">
+                            <h3 className="text-xs font-bold text-slate-700 uppercase mb-2">Required Columns</h3>
+                            <div className="text-xs text-slate-600 space-y-1">
+                                <p>• <b>Name</b>: Student full name (e.g., "Arun Kumar 22CSR123")</p>
+                                <p>• <b>Email</b>: Student email address</p>
+                            </div>
+                            <h3 className="text-xs font-bold text-slate-700 uppercase mt-3 mb-2">Optional Columns</h3>
+                            <div className="text-xs text-slate-600 space-y-1">
+                                <p>• <b>RollNo</b>, <b>Department</b>, <b>10th %</b>, <b>12th %</b>, <b>Current CGPA</b></p>
+                                <p className="text-[10px] text-slate-500 italic mt-2">* Column names are case-insensitive and flexible (e.g., "10th %" = "SSLC" = "10th percentage")</p>
+                            </div>
+                        </div>
+
+                        {/* Upload Area */}
                         <div className="border-2 border-dashed border-emerald-100 bg-emerald-50 rounded-xl p-8 text-center hover:bg-emerald-100 transition cursor-pointer relative">
                             <input type="file" accept=".xlsx, .xls" onChange={handleBulkUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                             <FileSpreadsheet size={48} className="mx-auto text-emerald-400 mb-3" />

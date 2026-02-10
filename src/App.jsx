@@ -10,6 +10,7 @@ import CoordinatorFeedback from "./components/CoordinatorFeedback";
 import AdminDashboard from "./components/AdminDashboard";
 import StudentFeedbackView from "./components/StudentFeedbackView";
 import CoordinatorResources from "./components/CoordinatorResources";
+import CoordinatorEditRequests from "./components/CoordinatorEditRequests";
 
 function PrivateRoute({ children, allowedRoles }) {
   const { currentUser, userRole, loading } = useAuth();
@@ -117,6 +118,12 @@ function App() {
             <Route path="/coordinator/resources" element={
               <PrivateRoute allowedRoles={['coordinator', 'admin']}>
                 <CoordinatorResources />
+              </PrivateRoute>
+            } />
+
+            <Route path="/coordinator/edit-requests" element={
+              <PrivateRoute allowedRoles={['coordinator', 'admin']}>
+                <CoordinatorEditRequests />
               </PrivateRoute>
             } />
 

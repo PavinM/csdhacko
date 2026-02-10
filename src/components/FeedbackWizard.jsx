@@ -7,13 +7,19 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({}); // Changed from string to object
 
+    // Extract company data - support both string (legacy) and object (new)
+    const companyName = typeof initialCompany === 'string' ? initialCompany : (initialCompany?.name || '');
+    const companyVisitDate = typeof initialCompany === 'object' ? initialCompany?.visitDate : '';
+    const companyJobRole = typeof initialCompany === 'object' ? (initialCompany?.jobRole || initialCompany?.roles || '') : '';
+    const isCompanyDataAvailable = typeof initialCompany === 'object';
+
     const [formData, setFormData] = useState({
         // Step 1: Drive Details
-        companyName: initialCompany,
-        jobRole: '', // Added for MERN Schema
+        companyName: companyName,
+        jobRole: companyJobRole || '', // Auto-populate from company
         salaryPackage: initialPackage,
-        driveDate: '',
-        department: '', // Removed default 'CSE'
+        driveDate: companyVisitDate || '', // Auto-populate from company
+        department: currentUser?.department || '', // Auto-populate from user profile
         numberOfRounds: 3,
 
         // Step 2 ton N: Round Details (Dynamic)
@@ -225,10 +231,11 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Job Role</label>
                                     <input
                                         type="text"
-                                        className={`w-full border ${errors.jobRole ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-slate-50/50'} rounded-xl p-3.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-700`}
+                                        className={`w-full border ${errors.jobRole ? 'border-red-500 bg-red-50' : companyJobRole ? 'border-slate-200 bg-slate-100' : 'border-slate-200 bg-slate-50/50'} rounded-xl p-3.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-700 ${companyJobRole ? 'opacity-70 cursor-not-allowed' : ''}`}
                                         value={formData.jobRole}
                                         onChange={(e) => handleInputChange('jobRole', e.target.value)}
                                         placeholder="e.g. Software Engineer"
+                                        readOnly={!!companyJobRole}
                                         required
                                     />
                                     {errors.jobRole && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.jobRole}</p>}
@@ -246,33 +253,47 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
                                     </div>
                                 )}
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Drive Date</label>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
+                                        Drive Date
+                                    </label>
                                     <input
                                         type="date"
-                                        className={`w-full border ${errors.driveDate ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-slate-50/50'} rounded-xl p-3.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-700`}
+                                        className={`w-full border ${errors.driveDate ? 'border-red-500 bg-red-50' : isCompanyDataAvailable && companyVisitDate ? 'border-slate-200 bg-slate-100' : 'border-slate-200 bg-slate-50/50'} rounded-xl p-3.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-700 ${isCompanyDataAvailable && companyVisitDate ? 'opacity-70 cursor-not-allowed' : ''}`}
                                         value={formData.driveDate}
                                         onChange={(e) => handleInputChange('driveDate', e.target.value)}
+                                        readOnly={isCompanyDataAvailable && !!companyVisitDate}
                                         required
                                     />
                                     {errors.driveDate && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.driveDate}</p>}
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Department</label>
-                                    <select
-                                        className={`w-full border ${errors.department ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-slate-50/50'} rounded-xl p-3.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-700 appearance-none`}
-                                        value={formData.department}
-                                        onChange={(e) => handleInputChange('department', e.target.value)}
-                                    >
-                                        <option value="" disabled>Select Department</option>
-                                        <option value="CSE">CSE</option>
-                                        <option value="IT">IT</option>
-                                        <option value="ECE">ECE</option>
-                                        <option value="EEE">EEE</option>
-                                        <option value="MECH">MECH</option>
-                                        <option value="CIVIL">CIVIL</option>
-                                        <option value="AIDS">AIDS</option>
-                                        <option value="AIML">AIML</option>
-                                    </select>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
+                                        Department
+                                    </label>
+                                    {currentUser?.department ? (
+                                        <input
+                                            type="text"
+                                            className="w-full border border-slate-200 bg-slate-100 rounded-xl p-3.5 outline-none font-medium text-slate-700 opacity-70 cursor-not-allowed"
+                                            value={formData.department}
+                                            readOnly
+                                        />
+                                    ) : (
+                                        <select
+                                            className={`w-full border ${errors.department ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-slate-50/50'} rounded-xl p-3.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-700 appearance-none`}
+                                            value={formData.department}
+                                            onChange={(e) => handleInputChange('department', e.target.value)}
+                                        >
+                                            <option value="" disabled>Select Department</option>
+                                            <option value="CSE">CSE</option>
+                                            <option value="IT">IT</option>
+                                            <option value="ECE">ECE</option>
+                                            <option value="EEE">EEE</option>
+                                            <option value="MECH">MECH</option>
+                                            <option value="CIVIL">CIVIL</option>
+                                            <option value="AIDS">AIDS</option>
+                                            <option value="AIML">AIML</option>
+                                        </select>
+                                    )}
                                     {errors.department && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.department}</p>}
                                 </div>
                                 <div>

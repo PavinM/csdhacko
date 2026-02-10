@@ -3,6 +3,7 @@ import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/api"; // MERN API
 import { XCircle, FileText, Calendar, Plus, ChevronRight, BarChart2, BookOpen, ExternalLink, CheckCircle, Briefcase, Sparkles, Share2, UserCheck } from "lucide-react";
 import FeedbackWizard from "./FeedbackWizard";
+import ProfileModal from "./ProfileModal";
 
 export default function StudentDashboard() {
     const { currentUser } = useAuth();
@@ -15,6 +16,7 @@ export default function StudentDashboard() {
     // Modal State (From Remote: Wizard Logic)
     const [activeModal, setActiveModal] = useState(null); // 'feedback' | null
     const [selectedCompany, setSelectedCompany] = useState(null);
+    const [showProfileModal, setShowProfileModal] = useState(false);
 
     useEffect(() => {
         if (currentUser) {
@@ -99,7 +101,7 @@ export default function StudentDashboard() {
         <div className="space-y-6 pb-10">
 
             {/* 1. Profile Banner */}
-            <div className="bg-gradient-to-r from-indigo-900 to-sky-500 rounded-xl p-8 text-white shadow-lg flex justify-between items-center relative overflow-hidden">
+            <div onClick={() => setShowProfileModal(true)} className="bg-gradient-to-r from-indigo-900 to-sky-500 rounded-xl p-8 text-white shadow-lg flex justify-between items-center relative overflow-hidden cursor-pointer transition-all hover:shadow-2xl hover:scale-[1.01]">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
                 <div className="relative z-10">
                     <h1 className="text-4xl font-extrabold uppercase tracking-wide drop-shadow-sm">{currentUser?.name || "Student Name"}</h1>
@@ -187,8 +189,8 @@ export default function StudentDashboard() {
                                                 key={company._id}
                                                 onClick={() => !hasSubmitted && handleGiveFeedback(company)}
                                                 className={`bg-white rounded-xl p-5 border shadow-sm mb-4 relative overflow-hidden transition-all ${hasSubmitted
-                                                        ? 'border-slate-200 cursor-default'
-                                                        : 'border-indigo-100 hover:shadow-md cursor-pointer group'
+                                                    ? 'border-slate-200 cursor-default'
+                                                    : 'border-indigo-100 hover:shadow-md cursor-pointer group'
                                                     }`}
                                             >
                                                 <div className="flex justify-between items-start">
@@ -360,7 +362,14 @@ export default function StudentDashboard() {
                     />
                 )
             }
+
+            {/* Profile Modal */}
+            {showProfileModal && (
+                <ProfileModal
+                    currentUser={currentUser}
+                    onClose={() => setShowProfileModal(false)}
+                />
+            )}
         </div >
     );
 }
-
