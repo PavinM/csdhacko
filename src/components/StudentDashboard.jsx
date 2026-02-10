@@ -91,7 +91,7 @@ export default function StudentDashboard() {
     };
 
     const handleGiveFeedback = (company) => {
-        setSelectedCompany(company.name);
+        setSelectedCompany(company); // Pass full company object with visitDate, roles, etc.
         setActiveModal('feedback');
     };
 
