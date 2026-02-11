@@ -115,6 +115,18 @@ export function AuthProvider({ children }) {
         // finally { setLoading(false); } // REMOVED
     };
 
+    // Update Local User Data (after profile edit)
+    const updateUserProfile = (userData) => {
+        setCurrentUser(userData);
+        // Preserve the token or other fields if the backend response doesn't include them?
+        // Usually login response has token, but profile update might just have user fields.
+        // We should merge with existing localStorage data to be safe about tokens.
+        const stored = JSON.parse(localStorage.getItem("user") || '{}');
+        const updated = { ...stored, ...userData };
+
+        localStorage.setItem("user", JSON.stringify(updated));
+    };
+
     // Logout Function
     const logout = () => {
         setCurrentUser(null);
@@ -130,6 +142,7 @@ export function AuthProvider({ children }) {
         signup,
         googleLogin,
         createUser,
+        updateUserProfile,
         logout
     };
 

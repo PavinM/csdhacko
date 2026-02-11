@@ -175,7 +175,10 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex gap-3">
                     <Link to="/coordinator/feedback" className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold transition shadow-md">
-                        <FileCheck size={18} /> Manage Feedbacks
+                        <FileCheck size={18} /> Review Pending
+                    </Link>
+                    <Link to="/student/view-feedback" className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-bold transition shadow-md">
+                        <Building size={18} /> View All Feedback
                     </Link>
                     <button
                         onClick={() => setIsCreating(true)}

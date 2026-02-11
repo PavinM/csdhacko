@@ -52,6 +52,26 @@ export default function StudentManagement() {
         setLoading(false);
     };
 
+    const handleMarkPlaced = async (studentId) => {
+        const company = prompt("Enter the company name where the student is placed:");
+        if (!company) return;
+
+        try {
+            await api.patch(`/users/${studentId}/placed`, {
+                isPlaced: true,
+                placedCompany: company
+            });
+
+            // Optimistic update or refresh
+            setStudents(prev => prev.map(s =>
+                s._id === studentId ? { ...s, isPlaced: true, placedCompany: company } : s
+            ));
+            alert("Student marked as placed!");
+        } catch (error) {
+            alert("Error updating status: " + (error.response?.data?.message || error.message));
+        }
+    };
+
     const handleCreateStudent = async (e) => {
         e.preventDefault();
         try {
@@ -149,7 +169,8 @@ export default function StudentManagement() {
                                 <th className="p-4 border-r border-slate-100">Current CGPA</th>
                                 <th className="p-4 border-r border-slate-100">Email</th>
                                 <th className="p-4 border-r border-slate-100">Department</th>
-                                <th className="p-4">Domain</th>
+                                <th className="p-4 border-r border-slate-100">Domain</th>
+                                <th className="p-4">Placement Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
@@ -162,10 +183,25 @@ export default function StudentManagement() {
                                     <td className="p-4 font-bold text-emerald-600 border-r border-slate-50">{student.cgpa || "-"}</td>
                                     <td className="p-4 text-slate-500 border-r border-slate-50">{student.email}</td>
                                     <td className="p-4 border-r border-slate-50">{student.department || "-"}</td>
-                                    <td className="p-4">
+                                    <td className="p-4 border-r border-slate-50">
                                         <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-medium border border-indigo-100">
                                             {student.domain || "N/A"}
                                         </span>
+                                    </td>
+                                    <td className="p-4">
+                                        {student.isPlaced ? (
+                                            <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold border border-green-200 flex flex-col items-center">
+                                                <span>PLACED</span>
+                                                <span className="text-[10px] uppercase">{student.placedCompany}</span>
+                                            </span>
+                                        ) : (
+                                            <button
+                                                onClick={() => handleMarkPlaced(student._id)}
+                                                className="bg-slate-100 hover:bg-green-100 hover:text-green-700 text-slate-500 px-3 py-1 rounded text-xs font-bold border border-slate-200 transition"
+                                            >
+                                                Mark Placed
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             )) : (

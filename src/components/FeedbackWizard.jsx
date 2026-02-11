@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, CheckCircle, FileText, Briefcase, Calendar, Layers, Check, Paperclip, Link as LinkIcon, Upload, X, Loader } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle, FileText, Briefcase, Calendar, Layers, Check, Paperclip, Link as LinkIcon, Upload, X, Loader, Sparkles } from 'lucide-react';
 import api from '../lib/api'; // MERN API
 
 export default function FeedbackWizard({ currentUser, onClose, onSuccess, initialCompany = '', initialPackage = '' }) {
@@ -11,7 +11,11 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
     // Extract company data - support both string (legacy) and object (new)
     const companyName = typeof initialCompany === 'string' ? initialCompany : (initialCompany?.name || '');
     const companyVisitDate = typeof initialCompany === 'object' ? initialCompany?.visitDate : '';
-    const companyJobRole = typeof initialCompany === 'object' ? (initialCompany?.jobRole || initialCompany?.roles || '') : '';
+    const getJobRoleString = (data) => {
+        const role = data?.jobRole || data?.roles || '';
+        return Array.isArray(role) ? role.join(', ') : role;
+    };
+    const companyJobRole = typeof initialCompany === 'object' ? getJobRoleString(initialCompany) : '';
     const isCompanyDataAvailable = typeof initialCompany === 'object';
 
     const [formData, setFormData] = useState({
@@ -57,6 +61,109 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
             updateRoundsCount(formData.numberOfRounds);
         }
     }, []);
+
+    const TOPIC_DATABASE = {
+        'Aptitude': {
+            base: ['Quantitative', 'Logical Reasoning', 'Verbal Ability', 'Data Interpretation'],
+            modes: {
+                'Online': ['HackerRank Pattern', 'Platform Based', 'Time Constraint', 'Gamified Assessment'],
+                'Offline (Pen & Paper)': ['OMR Based', 'Detailed Solutions', 'Rough Sheet Mgmt']
+            },
+            difficulty: {
+                'Hard': ['Advanced Probablity', 'Cryptarithmetic', 'Visual Reasoning', 'CAT Level Qs'],
+                'Medium': ['Puzzles', 'Series Completion', 'Blood Relations'],
+                'Easy': ['Basic Math', 'Grammar', 'Direct Qs']
+            }
+        },
+        'Technical': {
+            base: ['Data Structures', 'Algorithms', 'DBMS', 'OS', 'CN', 'OOPs', 'SQL'],
+            difficulty: {
+                'Hard': ['System Design', 'Advanced Graph Algo', 'Distributed Systems', 'Concurrency'],
+                'Medium': ['Tree Traversals', 'Normalisation', 'Deadlocks', 'TCP/IP'],
+                'Easy': ['Basic OOPs Concepts', 'SQL Queries', 'Stack/Queue']
+            }
+        },
+        'Coding': {
+            base: ['Arrays', 'Strings', 'LinkedList', 'Recusion', 'Sorting'],
+            modes: {
+                'Online': ['All Cases Pass', 'Edge Cases', 'Efficiency (Time/Space)'],
+                'Offline (Pen & Paper)': ['Pseudo Code', 'Logic Explanation', 'Dry Run']
+            },
+            difficulty: {
+                'Hard': ['DP', 'Graph Theory', 'Backtracking', 'Trie', 'Segment Trees'],
+                'Medium': ['Greedy', 'HashMaps', 'Two Pointers', 'Sliding Window', 'Binary Search'],
+                'Easy': ['Pattern Printing', 'Basic Logic', 'Math Library']
+            }
+        },
+        'Group Discussion': {
+            base: ['Communication', 'Listening Skills', 'Body Language'],
+            difficulty: {
+                'Hard': ['Abstract Topics', 'Policy Analysis', 'Controversial Topics'],
+                'Easy': ['General Interest', 'Story Telling']
+            }
+        },
+        'HR Interview': {
+            base: ['Introduction', 'Strengths/Weaknesses', 'Career Goals'],
+            difficulty: {
+                'Hard': ['Stress Interview', 'Ethical Dilenmas', 'Gap Year Justification'],
+                'Medium': ['Relocation', 'Salary Negotiation', 'Company Research']
+            }
+        }
+    };
+
+    const RELATED_TOPICS = {
+        'Data Structures': ['Arrays', 'Linked Lists', 'Trees', 'Graphs', 'Stacks', 'Queues'],
+        'Algorithms': ['Sorting', 'Searching', 'Dynamic Programming', 'Greedy', 'Backtracking'],
+        'DBMS': ['Normalization', 'SQL', 'ACID Properties', 'Indexing', 'Transactions'],
+        'OS': ['Process Mgmt', 'Threads', 'Deadlocks', 'Memory Mgmt', 'File Systems'],
+        'CN': ['OSI Model', 'TCP/IP', 'Protocols', 'IP Addressing', 'Network Security'],
+        'OOPs': ['Polymorphism', 'Inheritance', 'Encapsulation', 'Abstraction', 'Classes & Objects'],
+        'Java': ['Collections', 'Multithreading', 'Exception Handling', 'Streams', 'JVM'],
+        'Python': ['Decorators', 'Generators', 'Pandas', 'NumPy', 'Flask/Django'],
+        'Quantitative': ['Profit & Loss', 'Time & Work', 'Probability', 'Permutation & Combination', 'Geometry'],
+        'Logical Reasoning': ['Blood Relations', 'Seating Arrangement', 'Syllogism', 'Coding-Decoding'],
+        'Verbal Ability': ['Reading Comprehension', 'Sentence Correction', 'Vocabulary', 'Para Jumbles']
+    };
+
+    const getSmartSuggestions = (round) => {
+        if (!round.roundType || !TOPIC_DATABASE[round.roundType]) return [];
+
+        let suggestions = new Set(TOPIC_DATABASE[round.roundType].base || []);
+
+        // 1. Add Mode Specifics
+        if (round.mode && TOPIC_DATABASE[round.roundType].modes?.[round.mode]) {
+            TOPIC_DATABASE[round.roundType].modes[round.mode].forEach(t => suggestions.add(t));
+        }
+
+        // 2. Add Difficulty Specifics
+        if (round.difficulty && TOPIC_DATABASE[round.roundType].difficulty?.[round.difficulty]) {
+            TOPIC_DATABASE[round.roundType].difficulty[round.difficulty].forEach(t => suggestions.add(t));
+        }
+
+        // 3. Add Related Topics based on user selection
+        // Check which related keys are present in the current topics string
+        if (round.topics) {
+            Object.keys(RELATED_TOPICS).forEach(key => {
+                // If the key (e.g., "Data Structures") is already in the user's input
+                if (round.topics.includes(key)) {
+                    // Add its related topics (e.g., "Arrays", "Trees")
+                    RELATED_TOPICS[key].forEach(t => suggestions.add(t));
+                }
+            });
+        }
+
+        return Array.from(suggestions);
+    };
+
+    const handleAddTopic = (roundIndex, topic) => {
+        const currentTopics = formData.rounds[roundIndex].topics || '';
+        // Prevent duplicate addition
+        if (currentTopics.includes(topic)) return;
+
+        const infoSeparator = currentTopics.length > 0 && !currentTopics.endsWith(', ') ? ', ' : '';
+        const newTopics = currentTopics + infoSeparator + topic;
+        handleRoundChange(roundIndex, 'topics', newTopics);
+    };
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -132,7 +239,7 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
             onSuccess();
         } catch (error) {
             console.error("Error submitting feedback:", error);
-            alert("Failed to submit feedback. Please try again.");
+            alert("Failed to submit feedback: " + (error.response?.data?.message || error.message));
         } finally {
             setLoading(false);
         }
@@ -427,6 +534,40 @@ export default function FeedbackWizard({ currentUser, onClose, onSuccess, initia
                                             placeholder="e.g. Quants, Java, OOPS, specific coding questions..."
                                             required
                                         />
+
+                                        {/* SMART TOPIC SUGGESTIONS */}
+                                        {(() => {
+                                            const suggestions = getSmartSuggestions(formData.rounds[roundIndex]);
+                                            if (suggestions.length === 0) return null;
+
+                                            return (
+                                                <div className="mt-3 animate-fade-in-up">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                                                        <Sparkles size={10} className="text-amber-500" /> Smart Suggestions (Click to add)
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {suggestions.map(tag => {
+                                                            const isSelected = formData.rounds[roundIndex].topics?.includes(tag);
+                                                            // Highlight "Related" topics if they are not from the base set? 
+                                                            // For now, simple unified UI
+                                                            return (
+                                                                <button
+                                                                    key={tag}
+                                                                    onClick={() => handleAddTopic(roundIndex, tag)}
+                                                                    className={`text-xs px-2.5 py-1.5 rounded-lg border transition font-medium flex items-center gap-1 ${isSelected
+                                                                        ? 'bg-indigo-100 border-indigo-200 text-indigo-700 cursor-default'
+                                                                        : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50'
+                                                                        }`}
+                                                                >
+                                                                    {tag} {isSelected && <Check size={10} />}
+                                                                </button>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+
                                         {errors[`round${roundIndex}_topics`] && <p className="text-red-500 text-xs mt-1 font-semibold">{errors[`round${roundIndex}_topics`]}</p>}
                                     </div>
 

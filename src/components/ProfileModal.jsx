@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import { XCircle, User, Mail, Hash, Cake, GraduationCap, Sparkles, TrendingUp, Clock, Edit, Save } from "lucide-react";
 import api from "../lib/api";
 
@@ -38,6 +39,7 @@ export default function ProfileModal({ currentUser, onClose }) {
     const [isEditMode, setIsEditMode] = useState(false);
     const [editedData, setEditedData] = useState({});
     const [saving, setSaving] = useState(false);
+    const { updateUserProfile } = useAuth();
 
     useEffect(() => {
         fetchEditRequests();
@@ -88,11 +90,16 @@ export default function ProfileModal({ currentUser, onClose }) {
     const handleSaveProfile = async () => {
         setSaving(true);
         try {
-            await api.patch('/users/profile', editedData);
-            alert('Profile updated successfully! The page will reload.');
+            const { data } = await api.patch('/users/profile', editedData);
+
+            // Update Context & LocalStorage
+            updateUserProfile(data);
+
+            alert('Profile updated successfully!');
             setIsEditMode(false);
             await fetchEditRequests();
-            window.location.reload();
+            // No need to reload, state update will reflect immediately
+            // window.location.reload(); 
         } catch (error) {
             console.error("Error updating profile:", error);
             alert(error.response?.data?.message || 'Failed to update profile');

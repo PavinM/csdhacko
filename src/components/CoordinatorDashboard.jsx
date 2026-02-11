@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/api"; // MERN API
 
+import { Link } from "react-router-dom"; // Added Link
 import { Users, FileCheck, Building, BarChart2, Star, Sparkles } from "lucide-react";
 import { getDomainFromDept } from "../utils/studentUtils";
 import AssignStudentsModal from "./AssignStudentsModal"; // Added Modal Import
+import EditCompanyModal from "./EditCompanyModal";
 
 export default function CoordinatorDashboard() {
     const { currentUser } = useAuth();
@@ -105,9 +107,9 @@ export default function CoordinatorDashboard() {
 
             {/* 2. Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard title="Pending Reviews" value={stats.pendingFeedback} icon={<Star size={24} />} color="amber" />
+                <StatCard title="Pending Reviews" value={stats.pendingFeedback} icon={<Star size={24} />} color="amber" link="/coordinator/feedback" />
                 <StatCard title="Total Feedbacks" value={stats.totalFeedback} icon={<FileCheck size={24} />} color="blue" />
-                <StatCard title="Approved" value={stats.approved} icon={<CheckIcon size={24} />} color="teal" />
+                <StatCard title="Approved" value={stats.approved} icon={<CheckIcon size={24} />} color="teal" link="/student/view-feedback" />
                 <StatCard title="Active Companies" value={stats.companies} icon={<BarChart2 size={24} />} color="indigo" />
             </div>
 
@@ -241,6 +243,7 @@ export default function CoordinatorDashboard() {
                                 <th className="p-4 border-b border-slate-100">Domain</th>
                                 <th className="p-4 border-b border-slate-100">Date</th>
                                 <th className="p-4 border-b border-slate-100">Role</th>
+                                {currentUser.role === 'admin' && <th className="p-4 border-b border-slate-100 text-right">Actions</th>}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
@@ -257,6 +260,19 @@ export default function CoordinatorDashboard() {
                                     </td>
                                     <td className="p-4 text-slate-500">{company.visitDate}</td>
                                     <td className="p-4">{company.roles?.join(", ") || "N/A"}</td>
+                                    {currentUser.role === 'admin' && (
+                                        <td className="p-4 text-right">
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedAssignmentDrive(company);
+                                                    setActiveModal('edit');
+                                                }}
+                                                className="text-indigo-600 hover:text-indigo-900 font-bold text-xs bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition"
+                                            >
+                                                Edit
+                                            </button>
+                                        </td>
+                                    )}
                                 </tr>
                             )) : (
                                 <tr>
@@ -285,12 +301,28 @@ export default function CoordinatorDashboard() {
                     }}
                 />
             )}
+
+            {/* Edit Company Modal (Admin Only) */}
+            {activeModal === 'edit' && selectedAssignmentDrive && (
+                <EditCompanyModal
+                    company={selectedAssignmentDrive}
+                    onClose={() => {
+                        setActiveModal(null);
+                        setSelectedAssignmentDrive(null);
+                    }}
+                    onSuccess={() => {
+                        setActiveModal(null);
+                        setSelectedAssignmentDrive(null);
+                        fetchStats(); // Refresh list
+                    }}
+                />
+            )}
         </div>
     );
 }
 
 // Sub-components
-function StatCard({ title, value, icon, color }) {
+function StatCard({ title, value, icon, color, link }) {
     const colorClasses = {
         amber: 'bg-amber-50 text-amber-500',
         blue: 'bg-blue-50 text-blue-600',
@@ -298,8 +330,8 @@ function StatCard({ title, value, icon, color }) {
         indigo: 'bg-indigo-50 text-indigo-600'
     };
 
-    return (
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between transition-transform hover:-translate-y-1">
+    const Content = () => (
+        <div className={`bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between transition-transform hover:-translate-y-1 ${link ? 'cursor-pointer hover:shadow-md' : ''}`}>
             <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{title}</p>
                 <h3 className={`text-3xl font-bold mt-1 text-slate-800`}>{value}</h3>
@@ -309,6 +341,16 @@ function StatCard({ title, value, icon, color }) {
             </div>
         </div>
     );
+
+    if (link) {
+        return (
+            <Link to={link} className="block">
+                <Content />
+            </Link>
+        );
+    }
+
+    return <Content />;
 }
 
 function CheckIcon({ size }) {

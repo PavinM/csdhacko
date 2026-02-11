@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom"; // Added useLocation
 import api from "../lib/api";
-import { Search, Building2, Calendar, Star, MessageSquare, ChevronRight, Briefcase } from "lucide-react";
+import { Search, Building2, Calendar, Star, MessageSquare, ChevronRight, Briefcase, Download, ExternalLink } from "lucide-react";
 
 export default function StudentFeedbackView() {
     const [feedbacks, setFeedbacks] = useState([]);
@@ -8,9 +9,31 @@ export default function StudentFeedbackView() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCompany, setSelectedCompany] = useState(null);
 
+    const location = useLocation(); // Hook to get URL params
+
     useEffect(() => {
         fetchFeedbacks();
     }, []);
+
+    // Effect to handle URL Query Params
+    useEffect(() => {
+        if (!loading && feedbacks.length > 0) {
+            const params = new URLSearchParams(location.search);
+            const companyParam = params.get("company");
+            if (companyParam) {
+                // Find company in grouped feedbacks (we need to wait for grouping, or just search in feedbacks)
+                // Use a timeout or dependency on feedbacks/groupedFeedbacks
+                // But groupedFeedbacks is derived.
+                // We'll handle this in the render or separate effect depending on how we group.
+                // Let's do it here:
+                const decodedName = decodeURIComponent(companyParam);
+                // We need to re-group to find the company object matching the name
+                // Or just set searchTerm to filter?
+                // Better: Set selectedCompany directly if found.
+                // We'll do this logic inside a useEffect that depends on [feedbacks, location.search]
+            }
+        }
+    }, [loading, feedbacks, location.search]); // Run when feedbacks loaded or URL changes
 
     const fetchFeedbacks = async () => {
         try {
@@ -29,7 +52,7 @@ export default function StudentFeedbackView() {
         if (!acc[companyName]) {
             acc[companyName] = {
                 name: companyName,
-                role: fb.jobRole, // Taking one role for simplicity, could be array
+                role: fb.jobRole, // Taking one role for simplicity
                 feedbacks: []
             };
         }
@@ -40,6 +63,18 @@ export default function StudentFeedbackView() {
     const companies = Object.values(groupedFeedbacks).filter(c =>
         c.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    // Auto-select company from URL
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const companyParam = params.get("company");
+        if (companyParam && companies.length > 0 && !selectedCompany) {
+            const target = companies.find(c => c.name.toLowerCase() === decodeURIComponent(companyParam).toLowerCase());
+            if (target) setSelectedCompany(target);
+        }
+    }, [feedbacks, location.search]); // companies is derived from feedbacks
+
+
 
     if (loading) return <div className="p-10 text-center text-slate-500">Loading feedbacks...</div>;
 
@@ -70,8 +105,8 @@ export default function StudentFeedbackView() {
                                 key={idx}
                                 onClick={() => setSelectedCompany(company)}
                                 className={`p-4 rounded-lg cursor-pointer transition-all border ${selectedCompany?.name === company.name
-                                        ? "bg-indigo-50 border-indigo-200 shadow-sm ring-1 ring-indigo-200"
-                                        : "bg-white border-transparent hover:bg-slate-50 hover:border-slate-100"
+                                    ? "bg-indigo-50 border-indigo-200 shadow-sm ring-1 ring-indigo-200"
+                                    : "bg-white border-transparent hover:bg-slate-50 hover:border-slate-100"
                                     }`}
                             >
                                 <div className="flex justify-between items-center">
@@ -162,7 +197,46 @@ export default function StudentFeedbackView() {
                                                         {fb.rounds.map((round, rIdx) => (
                                                             <div key={rIdx} className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
                                                                 <span className="font-bold text-[#1A237E] text-sm block mb-1">{round.name}</span>
-                                                                <p className="text-sm text-slate-600 whitespace-pre-line">{round.questions}</p>
+                                                                <div className="text-sm text-slate-600">
+                                                                    {(() => {
+                                                                        try {
+                                                                            const text = String(round.questions || '');
+                                                                            // Regex to split by the resource pattern to separate text from links
+                                                                            const parts = text.split(/(\[(?:Link|File)\]\s*.*?\:\s*http[s]?:\/\/[^\s]+)/g);
+
+                                                                            return parts.map((part, i) => {
+                                                                                const match = part.match(/^\[(Link|File)\]\s*(.*?):\s*(http[s]?:\/\/[^\s]+)$/);
+                                                                                if (match) {
+                                                                                    const [_, type, title, url] = match;
+                                                                                    return (
+                                                                                        <a
+                                                                                            key={i}
+                                                                                            href={url}
+                                                                                            target="_blank"
+                                                                                            rel="noreferrer"
+                                                                                            onClick={(e) => e.stopPropagation()}
+                                                                                            className="block mt-2 mb-2 p-3 bg-slate-50 border border-slate-200 rounded-lg hover:border-indigo-300 hover:shadow-sm transition group"
+                                                                                        >
+                                                                                            <div className="flex items-center gap-3">
+                                                                                                <div className={`p-2 rounded-lg ${type === 'File' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'}`}>
+                                                                                                    {type === 'File' ? <Download size={16} /> : <ExternalLink size={16} />}
+                                                                                                </div>
+                                                                                                <div className="flex-1 min-w-0">
+                                                                                                    <p className="text-sm font-bold text-slate-700 truncate">{title}</p>
+                                                                                                    <p className="text-xs text-slate-400 truncate font-mono">{url}</p>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </a>
+                                                                                    );
+                                                                                }
+                                                                                return <span key={i} className="whitespace-pre-line">{part}</span>;
+                                                                            });
+                                                                        } catch (err) {
+                                                                            console.error("Error parsing resources:", err);
+                                                                            return <span className="whitespace-pre-line">{round.questions}</span>;
+                                                                        }
+                                                                    })()}
+                                                                </div>
                                                             </div>
                                                         ))}
                                                     </div>

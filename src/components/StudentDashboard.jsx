@@ -4,10 +4,13 @@ import api from "../lib/api"; // MERN API
 import { XCircle, FileText, Calendar, Plus, ChevronRight, BarChart2, BookOpen, ExternalLink, CheckCircle, Briefcase, Sparkles, Share2, UserCheck } from "lucide-react";
 import FeedbackWizard from "./FeedbackWizard";
 import ProfileModal from "./ProfileModal";
+import { Link } from "react-router-dom";
 
 export default function StudentDashboard() {
     const { currentUser } = useAuth();
-    const [availableCompanies, setAvailableCompanies] = useState([]); // Companies open for feedback
+    const [upcomingDrives, setUpcomingDrives] = useState([]);
+    const [ongoingDrives, setOngoingDrives] = useState([]);
+    const [completedDrives, setCompletedDrives] = useState([]);
     const [approvedFeedbacks, setApprovedFeedbacks] = useState([]); // All approved feedbacks (Global View)
     const [mySubmissions, setMySubmissions] = useState([]); // Student's own submissions (all statuses)
     const [loading, setLoading] = useState(true);
@@ -26,13 +29,12 @@ export default function StudentDashboard() {
 
     const fetchDashboardData = async () => {
         try {
-            // 1. Fetch Companies for "Give Feedback"
+            // 1. Fetch Companies for "Availability"
             const companyRes = await api.get('/companies');
 
-            // Helper function to check eligibility
+            // Helper function to check strict eligibility
             const isStudentEligible = (c) => {
                 // 1. Whitelist Check (Manual Override)
-                // DATA CLEANING: Normalize emails to handle typos like ".." -> "."
                 const eligibilityList = c.eligibleStudents?.map(e => e.toLowerCase().trim().replace(/\.\./g, '.')) || [];
                 const userEmail = currentUser.email.toLowerCase().trim().replace(/\.\./g, '.');
                 const userRollNo = currentUser.rollNo ? currentUser.rollNo.toLowerCase().trim() : "";
@@ -46,7 +48,7 @@ export default function StudentDashboard() {
                     if (c.domain !== currentUser.domain) meetsCriteria = false;
                 }
 
-                // Marks Check (Only if student has data)
+                // Marks Check (Strict)
                 const sCGPA = parseFloat(currentUser.cgpa || 0);
                 const s10th = parseFloat(currentUser.tenthMark || 0);
                 const s12th = parseFloat(currentUser.twelfthMark || 0);
@@ -61,14 +63,33 @@ export default function StudentDashboard() {
                 return isWhitelisted || meetsCriteria;
             };
 
-            // Filter for ALL Eligible Drives (Scheduled + Completed)
-            // User requested that Scheduled drives also allow feedback (or at least appear in this list).
-            const eligible = companyRes.data.filter(c => {
-                // Include both Scheduled and Completed
-                if (c.status !== 'completed' && c.status !== 'scheduled') return false;
-                return isStudentEligible(c);
+            // Categorize Drives
+            const upcoming = [];
+            const ongoing = [];
+            const completed = [];
+            const today = new Date().toISOString().split('T')[0];
+
+            companyRes.data.forEach(c => {
+                if (!isStudentEligible(c)) return; // Strictly filter out ineligible drives
+
+                if (c.status === 'completed') {
+                    completed.push(c);
+                } else if (c.status === 'scheduled') {
+                    if (c.visitDate > today) {
+                        upcoming.push(c);
+                    } else {
+                        // Scheduled but date is today or past (and not marked completed) -> Ongoing
+                        ongoing.push(c);
+                    }
+                } else if (!c.status || c.status === 'ongoing') {
+                    // Fallback or explicit ongoing
+                    ongoing.push(c);
+                }
             });
-            setAvailableCompanies(eligible);
+
+            setUpcomingDrives(upcoming);
+            setOngoingDrives(ongoing);
+            setCompletedDrives(completed);
 
             // 2. Fetch All Approved Feedbacks (Global View)
             const feedbackRes = await api.get('/feedback?status=approved');
@@ -154,6 +175,31 @@ export default function StudentDashboard() {
                 </p>
             </div>
 
+            {/* PLACEMENT SUCCESS BANNER */}
+            {currentUser?.isPlaced && (
+                <div className="bg-gradient-to-r from-emerald-500 to-teal-400 rounded-xl p-1 shadow-lg animate-fade-in-up">
+                    <div className="bg-white rounded-lg p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 shadow-inner">
+                                <Briefcase size={32} />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold text-slate-800">Congratulations! 🎉</h2>
+                                <p className="text-slate-600">
+                                    You have been placed at <span className="font-bold text-emerald-700 text-lg">{currentUser.placedCompany}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => handleGiveFeedback({ name: currentUser.placedCompany })}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-emerald-200 transition transform hover:scale-105 active:scale-95 flex items-center gap-2"
+                        >
+                            <FileText size={20} /> Share Interview Experience
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 gap-6">
                 {/* 2. Main Content: Help Juniors / Pending Feedbacks */}
                 <div className="space-y-6">
@@ -166,69 +212,35 @@ export default function StudentDashboard() {
                         </div>
 
                         <div className="space-y-4">
-                            {/* 1. Eligible Drives (Give Feedback) */}
-                            <div>
-                                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">Your Eligible Drives</h3>
-                                {availableCompanies.length === 0 ? (
-                                    <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                        <div className="inline-flex p-3 bg-white rounded-full shadow-sm mb-3 text-slate-300">
-                                            <FileText size={24} />
-                                        </div>
-                                        <p className="text-slate-500 font-medium">No pending feedbacks.</p>
-                                        <p className="text-xs text-slate-400">You can only give feedback for drives you attended.</p>
+                            <div className="space-y-8">
+                                <div className="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 rounded-xl p-8 text-center">
+                                    <div className="inline-flex p-4 bg-white rounded-full shadow-md mb-4 text-indigo-600">
+                                        <Briefcase size={32} />
                                     </div>
-                                ) : (
-                                    availableCompanies.map(company => {
-                                        const submission = getSubmissionStatus(company.name);
-                                        const hasSubmitted = !!submission;
-                                        const isApproved = submission?.status === 'approved';
-                                        const isPending = submission?.status === 'pending';
+                                    <h3 className="text-xl font-bold text-indigo-900 mb-2">My Placement Drives</h3>
+                                    <p className="text-slate-600 mb-6 max-w-md mx-auto">
+                                        View and manage all your eligible placement opportunities. Check ongoing drives, upcoming schedules, and provide feedback for completed interviews.
+                                    </p>
 
-                                        return (
-                                            <div
-                                                key={company._id}
-                                                onClick={() => !hasSubmitted && handleGiveFeedback(company)}
-                                                className={`bg-white rounded-xl p-5 border shadow-sm mb-4 relative overflow-hidden transition-all ${hasSubmitted
-                                                    ? 'border-slate-200 cursor-default'
-                                                    : 'border-indigo-100 hover:shadow-md cursor-pointer group'
-                                                    }`}
-                                            >
-                                                <div className="flex justify-between items-start">
-                                                    <div className="flex-1">
-                                                        <h3 className="font-bold text-lg text-indigo-900">{company.name}</h3>
-                                                        <p className="text-sm text-slate-500">{company.roles}</p>
-                                                        <div className="flex items-center gap-4 mt-2 text-xs text-slate-400 font-medium">
-                                                            <span className="flex items-center gap-1"><Calendar size={12} /> {company.visitDate}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        {isApproved && (
-                                                            <span className="bg-green-100 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 border border-green-200">
-                                                                <CheckCircle size={14} /> Approved
-                                                            </span>
-                                                        )}
-                                                        {isPending && (
-                                                            <span className="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 border border-yellow-200">
-                                                                ⏳ Pending Review
-                                                            </span>
-                                                        )}
-                                                        {!hasSubmitted && (
-                                                            <button
-                                                                onClick={() => handleGiveFeedback(company)}
-                                                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md transition transform active:scale-95"
-                                                            >
-                                                                Give Feedback
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                {!hasSubmitted && (
-                                                    <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition pointer-events-none"></div>
-                                                )}
-                                            </div>
-                                        );
-                                    })
-                                )}
+                                    <div className="flex justify-center gap-4 text-sm font-bold text-slate-500 mb-6">
+                                        <div className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm w-24">
+                                            <span className="text-emerald-500 text-xl">{ongoingDrives.length}</span>
+                                            <span>Ongoing</span>
+                                        </div>
+                                        <div className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm w-24">
+                                            <span className="text-blue-500 text-xl">{upcomingDrives.length}</span>
+                                            <span>Upcoming</span>
+                                        </div>
+                                        <div className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm w-24">
+                                            <span className="text-purple-500 text-xl">{completedDrives.length}</span>
+                                            <span>Completed</span>
+                                        </div>
+                                    </div>
+
+                                    <Link to="/drives" className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-200 transition transform hover:scale-105 active:scale-95">
+                                        View All Drives <ChevronRight size={20} />
+                                    </Link>
+                                </div>
                             </div>
 
                             {/* 2. Global Approved Feedbacks (Read Only - Local Improved UI) */}

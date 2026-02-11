@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "../lib/api";
 import {
     LayoutDashboard,
@@ -9,7 +9,11 @@ import {
     Users,
     LogOut,
     ChevronRight,
-    UserCog
+    UserCog,
+    Briefcase,
+    Bell,
+    X,
+    MessageSquare
 } from "lucide-react";
 import kecLogo from "../assets/KEC.png";
 
@@ -19,10 +23,26 @@ export default function Sidebar() {
     const navigate = useNavigate();
     const [pendingEditRequests, setPendingEditRequests] = useState(0);
 
+    // Notification State
+    const [notifications, setNotifications] = useState([]);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const notificationRef = useRef(null);
+
     useEffect(() => {
         if (userRole === 'coordinator') {
             fetchPendingCount();
         }
+        fetchNotifications();
+
+        // Close dropdown when clicking outside
+        function handleClickOutside(event) {
+            if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+                setShowNotifications(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [userRole]);
 
     const fetchPendingCount = async () => {
@@ -31,6 +51,16 @@ export default function Sidebar() {
             setPendingEditRequests(res.data.length);
         } catch (error) {
             console.error("Error fetching pending edit requests:", error);
+        }
+    };
+
+    const fetchNotifications = async () => {
+        try {
+            const res = await api.get('/notifications');
+            setNotifications(res.data);
+            setUnreadCount(res.data.length); // Simplified: Assume all fetched are "unread" for this session
+        } catch (error) {
+            console.error("Error fetching notifications:", error);
         }
     };
 
@@ -57,10 +87,22 @@ export default function Sidebar() {
             icon: FileText
         },
         {
+            role: 'student',
+            label: 'Placement Drives',
+            path: '/drives',
+            icon: Briefcase
+        },
+        {
             role: 'coordinator',
             label: 'Dashboard',
             path: '/coordinator',
             icon: LayoutDashboard
+        },
+        {
+            role: 'coordinator',
+            label: 'Placement Drives',
+            path: '/drives',
+            icon: Briefcase
         },
         {
             role: 'coordinator',
@@ -73,6 +115,12 @@ export default function Sidebar() {
             label: 'Students\' Feedback',
             path: '/coordinator/feedback',
             icon: FileText
+        },
+        {
+            role: 'coordinator',
+            label: 'Feedback Repository',
+            path: '/student/view-feedback',
+            icon: MessageSquare
         },
         {
             role: 'coordinator',
@@ -95,9 +143,21 @@ export default function Sidebar() {
         },
         {
             role: 'admin',
+            label: 'Placement Drives',
+            path: '/drives',
+            icon: Briefcase
+        },
+        {
+            role: 'admin',
             label: 'Feedbacks',
             path: '/coordinator/feedback',
             icon: FileText
+        },
+        {
+            role: 'admin',
+            label: 'Feedback Repository',
+            path: '/student/view-feedback',
+            icon: MessageSquare
         },
     ];
 
@@ -108,15 +168,76 @@ export default function Sidebar() {
     return (
         <aside className="w-72 bg-[#003366] text-white min-h-screen fixed left-0 top-0 hidden md:flex flex-col shadow-2xl z-50">
             {/* Branding Header */}
-            <div className="h-24 flex items-center gap-4 px-6 border-b border-white/10 bg-[#002855]">
-                <div className="w-12 h-12 bg-white rounded-lg p-1 flex-shrink-0 shadow-md">
-                    <img src={kecLogo} alt="KEC" className="w-full h-full object-contain" />
+            <div className="h-24 flex items-center justify-between px-6 border-b border-white/10 bg-[#002855]">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white rounded-lg p-1 flex-shrink-0 shadow-md">
+                        <img src={kecLogo} alt="KEC" className="w-full h-full object-contain" />
+                    </div>
+                    <div>
+                        <h1 className="font-extrabold text-lg tracking-tight leading-none text-white">
+                            KEC <span className="text-[#8cc63f]">PORTAL</span>
+                        </h1>
+                    </div>
                 </div>
-                <div>
-                    <h1 className="font-extrabold text-xl tracking-tight leading-none text-white">
-                        KEC <span className="text-[#8cc63f]">PORTAL</span>
-                    </h1>
-                    <p className="text-[10px] text-gray-300 uppercase tracking-widest font-medium mt-1">Transform Yourself</p>
+
+                {/* Notification Bell */}
+                <div className="relative" ref={notificationRef}>
+                    <button
+                        onClick={() => setShowNotifications(!showNotifications)}
+                        className="p-2 rounded-full hover:bg-white/10 transition relative text-blue-200 hover:text-white"
+                    >
+                        <Bell size={20} />
+                        {unreadCount > 0 && (
+                            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-[#002855] animate-pulse"></span>
+                        )}
+                    </button>
+
+                    {/* Notification Dropdown */}
+                    {showNotifications && (
+                        <div className="absolute top-full right-[-100px] mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden z-50 text-slate-800 animate-fade-in-up origin-top-right">
+                            <div className="p-3 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                                <h3 className="font-bold text-sm text-[#003366]">Notifications</h3>
+                                <button onClick={() => setShowNotifications(false)} className="text-slate-400 hover:text-slate-600">
+                                    <X size={16} />
+                                </button>
+                            </div>
+                            <div className="max-h-[300px] overflow-y-auto">
+                                {notifications.length === 0 ? (
+                                    <div className="p-6 text-center text-slate-400 text-sm">
+                                        <p>No new updates.</p>
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-slate-50">
+                                        {notifications.map((notif, idx) => (
+                                            <Link
+                                                key={idx}
+                                                to={notif.link}
+                                                onClick={() => setShowNotifications(false)}
+                                                className="block p-4 hover:bg-indigo-50 transition"
+                                            >
+                                                <div className="flex gap-3">
+                                                    <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${notif.type === 'drive' ? 'bg-blue-500' :
+                                                        notif.type === 'feedback' ? 'bg-green-500' :
+                                                            notif.type === 'alert' ? 'bg-red-500' : 'bg-slate-400'
+                                                        }`}></div>
+                                                    <div>
+                                                        <p className="text-xs font-bold text-slate-800 mb-0.5">{notif.title}</p>
+                                                        <p className="text-xs text-slate-500 leading-snug">{notif.message}</p>
+                                                        <p className="text-[10px] text-slate-400 mt-1">{new Date(notif.date).toLocaleDateString()}</p>
+                                                    </div>
+                                                </div>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-2 border-t border-slate-100 bg-slate-50 text-center">
+                                <Link to={userRole === 'student' ? '/student' : '/coordinator'} onClick={() => setShowNotifications(false)} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800">
+                                    View Dashboard
+                                </Link>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

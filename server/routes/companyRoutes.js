@@ -70,4 +70,41 @@ router.put('/:id/eligibility', protect, coordinator, asyncHandler(async (req, re
     }
 }));
 
+// @desc    Update company details (Admin only)
+// @route   PUT /api/companies/:id
+// @access  Private/Admin
+router.put('/:id', protect, admin, asyncHandler(async (req, res) => {
+    const company = await Company.findById(req.params.id);
+
+    if (company) {
+        company.name = req.body.name || company.name;
+        company.visitDate = req.body.visitDate || company.visitDate;
+        company.domain = req.body.domain || company.domain;
+        company.roles = req.body.roles || company.roles;
+        company.salaryPackage = req.body.salaryPackage || company.salaryPackage;
+        company.eligibility = req.body.eligibility || company.eligibility;
+
+        const updatedCompany = await company.save();
+        res.json(updatedCompany);
+    } else {
+        res.status(404);
+        throw new Error('Company not found');
+    }
+}));
+
+// @desc    Delete company
+// @route   DELETE /api/companies/:id
+// @access  Private/Admin
+router.delete('/:id', protect, admin, asyncHandler(async (req, res) => {
+    const company = await Company.findById(req.params.id);
+
+    if (company) {
+        await company.deleteOne();
+        res.json({ message: 'Company removed' });
+    } else {
+        res.status(404);
+        throw new Error('Company not found');
+    }
+}));
+
 export default router;

@@ -10,30 +10,77 @@ const router = express.Router();
 // @desc    Get all users (with filters)
 // @route   GET /api/users
 // @access  Private/Coordinator/Admin
+// @desc    Get all users (with filters)
+// @route   GET /api/users
+// @access  Private/Coordinator/Admin
 router.get('/', protect, coordinator, asyncHandler(async (req, res) => {
     // Basic filtering
 
     const keyword = req.query.role ? { role: req.query.role } : {};
 
     let filter = {};
+
+    // CRITICAL: If user is Coordinator, FORCE their department
+    if (req.user.role === 'coordinator') {
+        filter.department = req.user.department;
+    }
+    // If Admin, utilize query params if present
+    else if (req.query.department) {
+        filter.department = req.query.department;
+    }
+
     if (req.query.domainType) {
         const targetDepts = req.query.domainType === 'Software' ? SOFTWARE_DEPTS : HARDWARE_DEPTS;
 
         // Filter by EITHER:
         // 1. Department is in the allowed list (Inferred)
         // 2. OR Domain field explicitly matches (Explicit)
-        filter = {
+        // Note: For coordinators, 'department' is already locked above, so this just verifies the domain logic within their dept
+        const domainFilter = {
             $or: [
                 { department: { $in: targetDepts } },
                 { domain: req.query.domainType }
             ]
         };
-    } else if (req.query.department) {
-        filter = { department: req.query.department };
+
+        filter = { ...filter, ...domainFilter };
     }
 
     const users = await User.find({ ...keyword, ...filter }).select('-password');
     res.json(users);
+}));
+
+// @desc    Mark student as placed
+// @route   PATCH /api/users/:id/placed
+// @access  Private/Coordinator
+router.patch('/:id/placed', protect, coordinator, asyncHandler(async (req, res) => {
+    const { isPlaced, placedCompany } = req.body;
+
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    // Security: Coordinator can only update their own dept students
+    if (user.department !== req.user.department && req.user.role !== 'admin') {
+        res.status(403);
+        throw new Error('Access Denied: You can only manage students from your department');
+    }
+
+    user.isPlaced = isPlaced;
+    user.placedCompany = placedCompany || null;
+
+    const updatedUser = await user.save();
+
+    res.json({
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        isPlaced: updatedUser.isPlaced,
+        placedCompany: updatedUser.placedCompany
+    });
 }));
 
 // @desc    Register a new user (via Coordinator/Admin dashboard)

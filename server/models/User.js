@@ -20,6 +20,10 @@ const userSchema = mongoose.Schema({
     cgpa: { type: Number },
     profileCompleted: { type: Boolean, default: false },
 
+    // Placement Status
+    isPlaced: { type: Boolean, default: false },
+    placedCompany: { type: String, default: null },
+
     createdAt: { type: Date, default: Date.now }
 }, {
     timestamps: true
