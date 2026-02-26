@@ -129,6 +129,53 @@ router.post('/', protect, coordinator, asyncHandler(async (req, res) => {
 
 
 
+// @desc    Update user details (via Coordinator/Admin dashboard)
+// @route   PATCH /api/users/:id
+// @access  Private/Coordinator/Admin
+router.patch('/:id', protect, coordinator, asyncHandler(async (req, res) => {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    // Security: Coordinator can only update their own dept students
+    if (user.department !== req.user.department && req.user.role !== 'admin') {
+        res.status(403);
+        throw new Error('Access Denied: You can only manage students from your department');
+    }
+
+    // Update fields if provided
+    const updatableFields = ['name', 'email', 'rollNo', 'section', 'year', 'dob', 'batch', 'domain', 'tenthMark', 'twelfthMark', 'cgpa', 'department', 'role'];
+
+    updatableFields.forEach(field => {
+        if (req.body[field] !== undefined) {
+            // Further security: only admins can change roles or departments
+            if ((field === 'role' || field === 'department') && req.user.role !== 'admin') {
+                return; // skip for coordinators
+            }
+            user[field] = req.body[field];
+        }
+    });
+
+    const updatedUser = await user.save();
+
+    res.json({
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        department: updatedUser.department,
+        rollNo: updatedUser.rollNo,
+        section: updatedUser.section,
+        year: updatedUser.year,
+        batch: updatedUser.batch,
+        domain: updatedUser.domain,
+        cgpa: updatedUser.cgpa
+    });
+}));
+
 // @desc    Delete user
 // @route   DELETE /api/users/:id
 // @access  Private/Admin

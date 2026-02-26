@@ -2,14 +2,22 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/api";
 import { getDomainFromDept } from "../utils/studentUtils";
-import { UserPlus, Search, MoreVertical, X, Users, Mail, BookOpen, Calendar, Hash } from "lucide-react";
+import { UserPlus, Search, MoreVertical, X, Users, Mail, BookOpen, Calendar, Hash, Edit3 } from "lucide-react";
 
 export default function StudentManagement() {
     const { currentUser, createUser } = useAuth();
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingStudentId, setEditingStudentId] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const [placementModal, setPlacementModal] = useState({
+        isOpen: false,
+        studentId: null,
+        company: "",
+        lpa: ""
+    });
 
     // Updated State with new schema fields
     const [newStudent, setNewStudent] = useState({
@@ -52,21 +60,28 @@ export default function StudentManagement() {
         setLoading(false);
     };
 
-    const handleMarkPlaced = async (studentId) => {
-        const company = prompt("Enter the company name where the student is placed:");
-        if (!company) return;
+    const openPlacementModal = (studentId) => {
+        setPlacementModal({ isOpen: true, studentId, company: "", lpa: "" });
+    };
+
+    const handleMarkPlacedSubmit = async (e) => {
+        e.preventDefault();
+        const { studentId, company, lpa } = placementModal;
+        if (!company.trim() || !lpa) return;
 
         try {
             await api.patch(`/users/${studentId}/placed`, {
                 isPlaced: true,
-                placedCompany: company
+                placedCompany: company.trim(),
+                lpa: Number(lpa)
             });
 
             // Optimistic update or refresh
             setStudents(prev => prev.map(s =>
-                s._id === studentId ? { ...s, isPlaced: true, placedCompany: company } : s
+                s._id === studentId ? { ...s, isPlaced: true, placedCompany: company.trim(), lpa: Number(lpa) } : s
             ));
             alert("Student marked as placed!");
+            setPlacementModal({ isOpen: false, studentId: null, company: "", lpa: "" });
         } catch (error) {
             alert("Error updating status: " + (error.response?.data?.message || error.message));
         }
@@ -103,6 +118,55 @@ export default function StudentManagement() {
         }
     };
 
+    const handleEditClick = (student) => {
+        // Pre-fill the form with existing student details, defaulting to empty string if undefined
+        setNewStudent({
+            name: student.name || '',
+            email: student.email || '',
+            dob: student.dob ? new Date(student.dob).toISOString().split('T')[0] : '',
+            rollNo: student.rollNo || '',
+            section: student.section || '',
+            year: student.year?.toString() || '1',
+            tenthMark: student.tenthMark?.toString() || '',
+            twelfthMark: student.twelfthMark?.toString() || '',
+            cgpa: student.cgpa?.toString() || '',
+            domain: student.domain || '',
+            batch: student.batch || ''
+        });
+        setEditingStudentId(student._id);
+        setIsEditing(true);
+    };
+
+    const handleEditStudent = async (e) => {
+        e.preventDefault();
+        try {
+            await api.patch(`/users/${editingStudentId}`, {
+                name: newStudent.name,
+                dob: newStudent.dob,
+                rollNo: newStudent.rollNo,
+                section: newStudent.section,
+                year: newStudent.year,
+                tenthMark: Number(newStudent.tenthMark),
+                twelfthMark: Number(newStudent.twelfthMark),
+                cgpa: Number(newStudent.cgpa),
+                domain: newStudent.domain,
+                batch: newStudent.batch,
+                email: newStudent.email // Note: editing passwords requires different reset logic
+            });
+
+            setIsEditing(false);
+            setEditingStudentId(null);
+            setNewStudent({
+                name: '', email: '', password: '', dob: '', rollNo: '', section: '', year: '1',
+                tenthMark: '', twelfthMark: '', cgpa: '', domain: '', batch: ''
+            });
+            fetchStudents(); // Refresh list
+            alert("Student details updated successfully!");
+        } catch (error) {
+            alert("Error updating student: " + (error.response?.data?.message || error.message));
+        }
+    };
+
     // Updated search to include Roll No
     const filteredStudents = students.filter(student =>
         student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -121,7 +185,13 @@ export default function StudentManagement() {
                     <p className="text-slate-500 text-sm">Manage students in {currentUser?.department} Department</p>
                 </div>
                 <button
-                    onClick={() => setIsCreating(true)}
+                    onClick={() => {
+                        setNewStudent({
+                            name: '', email: '', password: '', dob: '', rollNo: '', section: '', year: '1',
+                            tenthMark: '', twelfthMark: '', cgpa: '', domain: '', batch: ''
+                        });
+                        setIsCreating(true);
+                    }}
                     className="flex items-center gap-2 bg-[#8BC34A] hover:bg-[#7CB342] text-white px-5 py-2.5 rounded-lg font-bold transition shadow-md hover:shadow-lg active:scale-95"
                 >
                     <UserPlus size={18} /> Add New Student
@@ -190,17 +260,37 @@ export default function StudentManagement() {
                                     </td>
                                     <td className="p-4">
                                         {student.isPlaced ? (
-                                            <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold border border-green-200 flex flex-col items-center">
-                                                <span>PLACED</span>
-                                                <span className="text-[10px] uppercase">{student.placedCompany}</span>
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold border border-green-200 flex flex-col items-center">
+                                                    <span>PLACED</span>
+                                                    <span className="text-[10px] uppercase">
+                                                        {student.placedCompany} {student.lpa ? `· ${student.lpa} LPA` : ''}
+                                                    </span>
+                                                </span>
+                                                <button
+                                                    onClick={() => handleEditClick(student)}
+                                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition"
+                                                    title="Edit Details"
+                                                >
+                                                    <Edit3 size={16} />
+                                                </button>
+                                            </div>
                                         ) : (
-                                            <button
-                                                onClick={() => handleMarkPlaced(student._id)}
-                                                className="bg-slate-100 hover:bg-green-100 hover:text-green-700 text-slate-500 px-3 py-1 rounded text-xs font-bold border border-slate-200 transition"
-                                            >
-                                                Mark Placed
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => openPlacementModal(student._id)}
+                                                    className="bg-slate-100 hover:bg-green-100 hover:text-green-700 text-slate-500 px-3 py-1 rounded text-xs font-bold border border-slate-200 transition whitespace-nowrap"
+                                                >
+                                                    Mark Placed
+                                                </button>
+                                                <button
+                                                    onClick={() => handleEditClick(student)}
+                                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition"
+                                                    title="Edit Details"
+                                                >
+                                                    <Edit3 size={16} />
+                                                </button>
+                                            </div>
                                         )}
                                     </td>
                                 </tr>
@@ -216,20 +306,27 @@ export default function StudentManagement() {
                 </div>
             </div>
 
-            {/* Creation Modal */}
-            {isCreating && (
+            {/* Creation / Edit Modal */}
+            {(isCreating || isEditing) && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl p-6 animate-fade-in relative border-t-4 border-[#8BC34A] max-h-[90vh] overflow-y-auto">
                         <button
-                            onClick={() => setIsCreating(false)}
+                            onClick={() => {
+                                setIsCreating(false);
+                                setIsEditing(false);
+                            }}
                             className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition"
                         >
                             <X size={20} />
                         </button>
-                        <h2 className="text-xl font-bold text-[#1A237E] mb-1">Add New Student</h2>
-                        <p className="text-xs text-slate-500 mb-6 uppercase tracking-wide">Enter complete student profile</p>
+                        <h2 className="text-xl font-bold text-[#1A237E] mb-1">
+                            {isEditing ? "Edit Student Details" : "Add New Student"}
+                        </h2>
+                        <p className="text-xs text-slate-500 mb-6 uppercase tracking-wide">
+                            {isEditing ? "Update existing profile" : "Enter complete student profile"}
+                        </p>
 
-                        <form onSubmit={handleCreateStudent} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <form onSubmit={isEditing ? handleEditStudent : handleCreateStudent} className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
                             {/* Personal Info */}
                             <div className="md:col-span-3">
@@ -298,15 +395,77 @@ export default function StudentManagement() {
                                 <input type="number" step="0.01" max="10" className="input-field" value={newStudent.cgpa} onChange={e => setNewStudent({ ...newStudent, cgpa: e.target.value })} placeholder="0.00" />
                             </div>
 
-                            {/* Security */}
-                            <div className="md:col-span-3 mt-4">
-                                <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Password</label>
-                                <input type="password" required className="input-field" value={newStudent.password} onChange={e => setNewStudent({ ...newStudent, password: e.target.value })} placeholder="••••••••" />
-                            </div>
+                            {/* Security (Hide Password in Edit Mode!) */}
+                            {!isEditing && (
+                                <div className="md:col-span-3 mt-4">
+                                    <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Password</label>
+                                    <input type="password" required className="input-field" value={newStudent.password} onChange={e => setNewStudent({ ...newStudent, password: e.target.value })} placeholder="••••••••" />
+                                </div>
+                            )}
 
                             <div className="md:col-span-3 mt-6">
                                 <button type="submit" className="w-full bg-[#1A237E] hover:bg-[#283593] text-white font-bold py-3.5 rounded-lg shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
-                                    <UserPlus size={18} /> Create Student Profile
+                                    <UserPlus size={18} /> {isEditing ? "Save Changes" : "Create Student Profile"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Placement Modal */}
+            {placementModal.isOpen && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-fade-in relative border-t-4 border-[#1A237E]">
+                        <button
+                            onClick={() => setPlacementModal({ isOpen: false, studentId: null, company: "", lpa: "" })}
+                            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition"
+                        >
+                            <X size={20} />
+                        </button>
+                        <h2 className="text-xl font-bold text-[#1A237E] mb-1">Mark as Placed</h2>
+                        <p className="text-xs text-slate-500 mb-6 uppercase tracking-wide">Enter placement details</p>
+
+                        <form onSubmit={handleMarkPlacedSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Company Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="input-field"
+                                    value={placementModal.company}
+                                    onChange={e => setPlacementModal({ ...placementModal, company: e.target.value })}
+                                    placeholder="e.g. TCS, Infosys, Zoho"
+                                    autoFocus
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-[#1A237E] uppercase mb-1">Package (LPA)</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    required
+                                    className="input-field"
+                                    value={placementModal.lpa}
+                                    onChange={e => setPlacementModal({ ...placementModal, lpa: e.target.value })}
+                                    placeholder="e.g. 4.5"
+                                />
+                            </div>
+
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setPlacementModal({ isOpen: false, studentId: null, company: "", lpa: "" })}
+                                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-lg transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 bg-[#8BC34A] hover:bg-[#7CB342] text-white font-bold py-2.5 rounded-lg shadow-md transition"
+                                >
+                                    Confirm
                                 </button>
                             </div>
                         </form>

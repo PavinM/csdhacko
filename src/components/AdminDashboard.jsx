@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/api"; // MERN API
 import * as XLSX from 'xlsx';
-import { Users, Building, BarChart2, MoreVertical, Search, UserPlus, X, Star, FileCheck, CheckCircle, Plus, Upload, FileSpreadsheet, Trash2 } from "lucide-react";
+import { Users, Building, BarChart2, MoreVertical, Search, UserPlus, X, Star, FileCheck, CheckCircle, Plus, Upload, FileSpreadsheet, Trash2, Edit3 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function AdminDashboard() {
@@ -18,6 +18,8 @@ export default function AdminDashboard() {
     });
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingUserId, setEditingUserId] = useState(null);
     const [isAddingCompany, setIsAddingCompany] = useState(false);
     const [isBulkUploading, setIsBulkUploading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -84,6 +86,34 @@ export default function AdminDashboard() {
             alert("Coordinator created successfully!");
         } catch (error) {
             alert("Error creating user: " + error.message);
+        }
+    };
+
+    const handleEditClick = (user) => {
+        setNewUser({
+            name: user.name || '',
+            email: user.email || '',
+            department: user.department || ''
+        });
+        setEditingUserId(user._id);
+        setIsEditing(true);
+    };
+
+    const handleEditUser = async (e) => {
+        e.preventDefault();
+        try {
+            await api.patch(`/users/${editingUserId}`, {
+                name: newUser.name,
+                email: newUser.email,
+                department: newUser.department
+            });
+            setIsEditing(false);
+            setEditingUserId(null);
+            setNewUser({ name: '', email: '', password: '', department: '' });
+            fetchAllData();
+            alert("User updated successfully!");
+        } catch (error) {
+            alert("Error updating user: " + (error.response?.data?.message || error.message));
         }
     };
 
@@ -167,52 +197,63 @@ export default function AdminDashboard() {
 
     return (
         <div className="space-y-8 relative">
-            {/* Header */}
-            <div className="flex justify-between items-end">
-                <div>
-                    <h1 className="text-2xl font-bold text-indigo-900">System Administration</h1>
-                    <p className="text-slate-500 text-sm">Overview, User Management & System Stats</p>
+            {/* Admin Welcome Card & Actions */}
+            <div className="bg-gradient-to-r from-[#1A237E] to-[#3949AB] rounded-2xl p-8 shadow-lg text-white">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div>
+                        <h1 className="text-3xl font-bold mb-2">System Administration</h1>
+                        <p className="text-blue-100/90 text-sm">
+                            Manage users, monitor feedback, and oversee placement drives.
+                        </p>
+                    </div>
                 </div>
-                <div className="flex gap-3">
-                    <Link to="/coordinator/feedback" className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold transition shadow-md">
+
+                {/* Refactored Quick Actions - Aligned nicely Below Welcome Text */}
+                <div className="mt-8 pt-6 border-t border-white/10 grid grid-cols-2 lg:grid-cols-5 gap-3">
+                    <Link to="/coordinator/feedback" className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition backdrop-blur-sm border border-white/5">
                         <FileCheck size={18} /> Review Pending
                     </Link>
-                    <Link to="/student/view-feedback" className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-bold transition shadow-md">
-                        <Building size={18} /> View All Feedback
+                    <Link to="/student/view-feedback" className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition backdrop-blur-sm border border-white/5">
+                        <Building size={18} /> All Feedback
                     </Link>
                     <button
                         onClick={() => setIsCreating(true)}
-                        className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-bold transition shadow-md"
+                        className="flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-xl font-bold transition shadow-md border border-orange-400"
                     >
                         <UserPlus size={18} /> New Coordinator
                     </button>
                     <button
                         onClick={() => setIsAddingCompany(true)}
-                        className="flex items-center gap-2 bg-[#1A237E] hover:bg-[#283593] text-white px-4 py-2 rounded-lg font-bold transition shadow-md"
+                        className="flex items-center justify-center gap-2 bg-[#8BC34A] hover:bg-[#7CB342] text-white px-4 py-3 rounded-xl font-bold transition shadow-md border border-[#7CB342]"
                     >
                         <Plus size={18} /> Add Company
                     </button>
                     <button
                         onClick={() => setIsBulkUploading(true)}
-                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold transition shadow-md"
+                        className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 rounded-xl font-bold transition shadow-md border border-emerald-500 col-span-2 lg:col-span-1"
                     >
                         <Upload size={18} /> Bulk Students
                     </button>
                 </div>
             </div>
 
-            {/* Creation Modal */}
-            {isCreating && (
+            {/* Creation / Edit Modal */}
+            {(isCreating || isEditing) && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-fade-in relative">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-fade-in relative border-t-4 border-indigo-900">
                         <button
-                            onClick={() => setIsCreating(false)}
+                            onClick={() => {
+                                setIsCreating(false);
+                                setIsEditing(false);
+                            }}
                             className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
                         >
                             <X size={20} />
                         </button>
-                        <h2 className="text-xl font-bold text-indigo-900 mb-6">Add New Coordinator</h2>
-                        <form onSubmit={handleCreateUser} className="space-y-4">
+                        <h2 className="text-xl font-bold text-indigo-900 mb-6">
+                            {isEditing ? "Edit Coordinator" : "Add New Coordinator"}
+                        </h2>
+                        <form onSubmit={isEditing ? handleEditUser : handleCreateUser} className="space-y-4">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Full Name</label>
                                 <input
@@ -238,16 +279,18 @@ export default function AdminDashboard() {
                                     value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })}
                                 />
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Password</label>
-                                <input
-                                    type="password" required
-                                    className="w-full border rounded-lg p-2.5 focus:border-indigo-900 outline-none"
-                                    value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })}
-                                />
-                            </div>
-                            <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg mt-2">
-                                Create Account
+                            {!isEditing && (
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Password</label>
+                                    <input
+                                        type="password" required
+                                        className="w-full border rounded-lg p-2.5 focus:border-indigo-900 outline-none"
+                                        value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+                                    />
+                                </div>
+                            )}
+                            <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg mt-2 transition">
+                                {isEditing ? "Save Changes" : "Create Account"}
                             </button>
                         </form>
                     </div>
@@ -624,7 +667,14 @@ export default function AdminDashboard() {
                                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Active
                                             </span>
                                         </td>
-                                        <td className="p-5 text-right">
+                                        <td className="p-5 text-right space-x-2">
+                                            <button
+                                                onClick={() => handleEditClick(user)}
+                                                className="text-slate-400 hover:text-indigo-600 transition p-2 hover:bg-indigo-50 rounded-full"
+                                                title="Edit User"
+                                            >
+                                                <Edit3 size={18} />
+                                            </button>
                                             <button
                                                 onClick={() => handleDeleteUser(user._id)}
                                                 className="text-slate-400 hover:text-red-600 transition p-2 hover:bg-red-50 rounded-full"
